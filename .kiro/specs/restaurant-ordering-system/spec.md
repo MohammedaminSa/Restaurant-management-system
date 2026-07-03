@@ -20,7 +20,7 @@ A modern, web-based Progressive Web App (PWA) restaurant ordering system that en
 - React 19 with TypeScript
 - Vite for build tooling
 - Progressive Web App (PWA) with service workers
-- Real-time updates via WebSocket/Server-Sent Events
+- Real-time via WebSockeupdates t/Server-Sent Events
 - Responsive design for mobile, tablet, and desktop
 
 **Backend:**
