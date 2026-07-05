@@ -43,8 +43,13 @@ app.get('/health', (req: Request, res: Response) => {
   });
 });
 
-// API routes will be added here
-// app.use('/api/v1/auth', authRoutes);
+// Import routes
+import authRoutes from './routes/auth.routes';
+import userRoutes from './routes/user.routes';
+
+// API routes
+app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/users', userRoutes);
 // app.use('/api/v1/customer', customerRoutes);
 // app.use('/api/v1/kitchen', kitchenRoutes);
 // app.use('/api/v1/waiter', waiterRoutes);
