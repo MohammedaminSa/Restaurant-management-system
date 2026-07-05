@@ -1,6 +1,6 @@
 import { Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { AuthRequest, UserRole } from '@types/index';
+import { AuthRequest, UserRole } from '@/interfaces/index';
 import { AppError } from './errorHandler';
 
 export const authenticate = (req: AuthRequest, res: Response, next: NextFunction) => {

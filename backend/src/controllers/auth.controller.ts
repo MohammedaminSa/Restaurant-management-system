@@ -1,6 +1,6 @@
 import { Response } from 'express';
 import bcrypt from 'bcryptjs';
-import { AuthRequest } from '@types/index';
+import { AuthRequest } from '@/interfaces/index';
 import { query } from '@config/database';
 import { ResponseHandler } from '@utils/responseHandler';
 import { asyncHandler } from '@middlewares/errorHandler';

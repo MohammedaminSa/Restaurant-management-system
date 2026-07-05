@@ -25,7 +25,7 @@
       "@routes/*": ["./routes/*"],
       "@middlewares/*": ["./middlewares/*"],
       "@utils/*": ["./utils/*"],
-      "@types/*": ["./types/*"]
+      "@interfaces/*": ["./interfaces/*"]
     }
   },
   "include": ["src/**/*"],

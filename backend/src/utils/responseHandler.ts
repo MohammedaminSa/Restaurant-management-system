@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import { ApiResponse, PaginatedResponse } from '@types/index';
+import { ApiResponse, PaginatedResponse } from '@/interfaces/index';
 
 export class ResponseHandler {
   static success<T>(res: Response, data?: T, message?: string, statusCode = 200) {

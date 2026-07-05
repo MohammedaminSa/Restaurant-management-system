@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { User } from '@types/index';
+import { User } from '@interfaces/index';
 
 interface TokenPayload {
   id: string;
@@ -16,14 +16,12 @@ export const generateAccessToken = (user: Partial<User>): string => {
     restaurantId: user.restaurant_id,
   };
 
-  const secret = process.env.JWT_SECRET;
+  const secret = process.env.JWT_SECRET!;
   if (!secret) {
     throw new Error('JWT_SECRET is not defined');
   }
 
-  return jwt.sign(payload, secret, {
-    expiresIn: process.env.JWT_EXPIRES_IN || '1h',
-  });
+  return jwt.sign(payload, secret, { expiresIn: '1h' });
 };
 
 export const generateRefreshToken = (user: Partial<User>): string => {
@@ -34,18 +32,16 @@ export const generateRefreshToken = (user: Partial<User>): string => {
     restaurantId: user.restaurant_id,
   };
 
-  const secret = process.env.JWT_REFRESH_SECRET;
+  const secret = process.env.JWT_REFRESH_SECRET!;
   if (!secret) {
     throw new Error('JWT_REFRESH_SECRET is not defined');
   }
 
-  return jwt.sign(payload, secret, {
-    expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
-  });
+  return jwt.sign(payload, secret, { expiresIn: '7d' });
 };
 
 export const verifyRefreshToken = (token: string): TokenPayload => {
-  const secret = process.env.JWT_REFRESH_SECRET;
+  const secret = process.env.JWT_REFRESH_SECRET!;
   if (!secret) {
     throw new Error('JWT_REFRESH_SECRET is not defined');
   }

@@ -10,7 +10,7 @@ import {
 } from '@controllers/user.controller';
 import { authenticate, authorize } from '@middlewares/auth';
 import { validate } from '@middlewares/validator';
-import { UserRole } from '@types/index';
+import { UserRole } from '@/interfaces/index';
 
 const router = Router();
 
