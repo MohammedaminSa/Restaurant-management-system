@@ -21,20 +21,20 @@ services:
       timeout: 5s
       retries: 5
 
-  # Redis Cache
-  redis:
-    image: redis:7-alpine
-    container_name: restaurant_redis
-    restart: unless-stopped
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+  # Redis Cache (Optional - Uncomment if needed)
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: restaurant_redis
+  #   restart: unless-stopped
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - redis_data:/data
+  #   healthcheck:
+  #     test: ["CMD", "redis-cli", "ping"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
 
   # Backend API (Uncomment after building)
   # backend:
@@ -85,4 +85,4 @@ services:
 
 volumes:
   postgres_data:
-  redis_data:
+  # redis_data:  # Uncomment if using Redis

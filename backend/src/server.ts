@@ -14,7 +14,7 @@ const startServer = async () => {
     await pool.query('SELECT NOW()');
     console.log('✓ Database connection test passed');
 
-    // Connect to Redis (optional, app will work without it)
+    // Connect to Redis (optional - only if enabled in .env)
     await connectRedis();
 
     // Start Express server
