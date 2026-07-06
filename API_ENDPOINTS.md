@@ -315,3 +315,212 @@ All API responses follow this format:
 ---
 
 **Happy Testing!** 🚀
+
+
+---
+
+## 🍔 Menu Endpoints
+
+### 1. Get All Categories
+- **GET** `/menu/categories`
+- **Auth:** None (Public)
+- **Query Parameters:**
+  - `restaurantId` (optional) - Filter by restaurant
+- **Response:**
+```json
+{
+    "success": true,
+    "data": [
+        {
+            "id": "uuid",
+            "name": "Appetizers",
+            "description": "Start your meal with our delicious appetizers",
+            "image_url": null,
+            "display_order": 1,
+            "is_active": true
+        }
+    ]
+}
+```
+
+---
+
+### 2. Get All Menu Items
+- **GET** `/menu/items`
+- **Auth:** None (Public)
+- **Query Parameters:**
+  - `categoryId` (optional) - Filter by category
+  - `search` (optional) - Search in name and description
+  - `isAvailable` (optional) - Filter available items (true/false)
+  - `isFeatured` (optional) - Filter featured items (true/false)
+  - `restaurantId` (optional) - Filter by restaurant
+  - `page` (optional, default: 1)
+  - `pageSize` (optional, default: 20)
+- **Example:** `/menu/items?categoryId=uuid&search=burger&isAvailable=true&page=1&pageSize=10`
+- **Response:**
+```json
+{
+    "success": true,
+    "data": [
+        {
+            "id": "uuid",
+            "name": "Classic Burger",
+            "description": "Juicy beef patty with lettuce...",
+            "image_url": null,
+            "base_price": "14.99",
+            "preparation_time": 20,
+            "is_available": true,
+            "is_featured": true,
+            "dietary_info": {},
+            "allergens": ["gluten", "dairy"],
+            "category_id": "uuid",
+            "category_name": "Main Course"
+        }
+    ],
+    "pagination": {
+        "page": 1,
+        "pageSize": 10,
+        "totalItems": 50,
+        "totalPages": 5
+    }
+}
+```
+
+---
+
+### 3. Get Menu Item by ID
+- **GET** `/menu/items/:id`
+- **Auth:** None (Public)
+- **Response:**
+```json
+{
+    "success": true,
+    "data": {
+        "id": "uuid",
+        "name": "Classic Burger",
+        "description": "Juicy beef patty...",
+        "base_price": "14.99",
+        "variants": [
+            {
+                "id": "uuid",
+                "name": "Size",
+                "type": "single_select",
+                "is_required": true,
+                "options": [
+                    {
+                        "id": "uuid",
+                        "name": "Regular",
+                        "price_modifier": "0.00",
+                        "is_default": true
+                    },
+                    {
+                        "id": "uuid",
+                        "name": "Large",
+                        "price_modifier": "3.00",
+                        "is_default": false
+                    }
+                ]
+            }
+        ]
+    }
+}
+```
+
+---
+
+### 4. Create Menu Item
+- **POST** `/menu/items`
+- **Auth:** Bearer Token (Admin Only)
+- **Body:**
+```json
+{
+    "name": "New Burger",
+    "description": "Delicious new burger",
+    "base_price": 15.99,
+    "category_id": "uuid",
+    "restaurant_id": "uuid",
+    "preparation_time": 20,
+    "is_featured": false,
+    "dietary_info": {"vegetarian": false},
+    "allergens": ["gluten", "dairy"]
+}
+```
+- **Response:**
+```json
+{
+    "success": true,
+    "data": { ... },
+    "message": "Menu item created successfully"
+}
+```
+
+---
+
+### 5. Update Menu Item
+- **PUT** `/menu/items/:id`
+- **Auth:** Bearer Token (Admin Only)
+- **Body:**
+```json
+{
+    "name": "Updated Burger",
+    "base_price": 16.99,
+    "is_available": true
+}
+```
+- **Response:**
+```json
+{
+    "success": true,
+    "data": { ... },
+    "message": "Menu item updated successfully"
+}
+```
+
+---
+
+### 6. Delete Menu Item
+- **DELETE** `/menu/items/:id`
+- **Auth:** Bearer Token (Admin Only)
+- **Response:**
+```json
+{
+    "success": true,
+    "message": "Menu item deleted successfully"
+}
+```
+
+---
+
+### 7. Toggle Menu Item Availability
+- **PATCH** `/menu/items/:id/toggle`
+- **Auth:** Bearer Token (Admin Only)
+- **Response:**
+```json
+{
+    "success": true,
+    "data": {
+        "id": "uuid",
+        "name": "Classic Burger",
+        "is_available": false
+    },
+    "message": "Menu item disabled successfully"
+}
+```
+
+---
+
+## 🔒 Updated Authorization Matrix
+
+| Endpoint | Super Admin | Restaurant Admin | Kitchen | Waiter | Cashier | Public |
+|----------|-------------|------------------|---------|--------|---------|--------|
+| GET /menu/categories | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| GET /menu/items | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| GET /menu/items/:id | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| POST /menu/items | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| PUT /menu/items/:id | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| DELETE /menu/items/:id | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| PATCH /menu/items/:id/toggle | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+
+---
+
+**Happy Testing!** 🚀

@@ -46,10 +46,12 @@ app.get('/health', (req: Request, res: Response) => {
 // Import routes
 import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
+import menuRoutes from './routes/menu.routes';
 
 // API routes
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', userRoutes);
+app.use('/api/v1/menu', menuRoutes);
 // app.use('/api/v1/customer', customerRoutes);
 // app.use('/api/v1/kitchen', kitchenRoutes);
 // app.use('/api/v1/waiter', waiterRoutes);
