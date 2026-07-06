@@ -10,6 +10,7 @@
     "start": "node dist/server.js",
     "seed": "ts-node src/database/seed.ts",
     "seed:menu": "ts-node src/database/seed-menu.ts",
+    "seed:tables": "ts-node src/database/seed-tables.ts",
     "test": "jest",
     "lint": "eslint src/**/*.ts"
   },
@@ -21,6 +22,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@types/uuid": "^10.0.0",
     "bcryptjs": "^2.4.3",
     "compression": "^1.7.4",
     "cors": "^2.8.5",
@@ -35,6 +37,7 @@
     "pg": "^8.11.3",
     "qrcode": "^1.5.3",
     "redis": "^4.6.10",
+    "uuid": "^14.0.1",
     "ws": "^8.14.2"
   },
   "devDependencies": {
