@@ -11,6 +11,7 @@ import {
 } from '@controllers/menu.controller';
 import { authenticate, authorize } from '@middlewares/auth';
 import { validate } from '@middlewares/validator';
+import { UserRole } from '@/interfaces/index';
 
 const router = Router();
 
@@ -35,7 +36,7 @@ router.get(
 router.post(
   '/items',
   authenticate,
-  authorize(['super_admin', 'restaurant_admin']),
+  authorize(UserRole.SUPER_ADMIN, UserRole.RESTAURANT_ADMIN),
   [
     body('name').notEmpty().withMessage('Name is required'),
     body('base_price').isFloat({ min: 0 }).withMessage('Valid base price is required'),
@@ -50,7 +51,7 @@ router.post(
 router.put(
   '/items/:id',
   authenticate,
-  authorize(['super_admin', 'restaurant_admin']),
+  authorize(UserRole.SUPER_ADMIN, UserRole.RESTAURANT_ADMIN),
   [
     param('id').isUUID().withMessage('Valid item ID is required'),
     body('base_price').optional().isFloat({ min: 0 }).withMessage('Valid base price is required'),
@@ -63,7 +64,7 @@ router.put(
 router.delete(
   '/items/:id',
   authenticate,
-  authorize(['super_admin', 'restaurant_admin']),
+  authorize(UserRole.SUPER_ADMIN, UserRole.RESTAURANT_ADMIN),
   [param('id').isUUID().withMessage('Valid item ID is required'), validate],
   deleteMenuItem
 );
@@ -72,7 +73,7 @@ router.delete(
 router.patch(
   '/items/:id/toggle',
   authenticate,
-  authorize(['super_admin', 'restaurant_admin']),
+  authorize(UserRole.SUPER_ADMIN, UserRole.RESTAURANT_ADMIN),
   [param('id').isUUID().withMessage('Valid item ID is required'), validate],
   toggleAvailability
 );
