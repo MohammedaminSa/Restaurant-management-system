@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import { AuthRequest } from '@/interfaces/index';
+import { AuthRequest, UserRole } from '@/interfaces/index';
 import { query } from '@config/database';
 import { ResponseHandler } from '@utils/responseHandler';
 import { asyncHandler } from '@middlewares/errorHandler';
@@ -11,6 +11,20 @@ import { v4 as uuidv4 } from 'uuid';
 export const getTables = asyncHandler(async (req: AuthRequest, res: Response) => {
   const { restaurantId, status } = req.query;
 
+  // Restaurant access control
+  let filterRestaurantId: string | undefined;
+  
+  if (req.user?.role === 'super_admin') {
+    // Super admin can see all restaurants
+    filterRestaurantId = restaurantId as string | undefined;
+  } else {
+    // Other users (restaurant_admin, waiter) can only see their own restaurant
+    if (!req.user?.restaurantId) {
+      throw new AppError('User is not assigned to a restaurant', 403);
+    }
+    filterRestaurantId = req.user.restaurantId;
+  }
+
   let queryText = `
     SELECT 
       id, restaurant_id, table_number, qr_code, capacity, 
@@ -21,9 +35,9 @@ export const getTables = asyncHandler(async (req: AuthRequest, res: Response) =>
   const params: any[] = [];
   let paramCount = 1;
 
-  if (restaurantId) {
+  if (filterRestaurantId) {
     queryText += ` AND restaurant_id = $${paramCount}`;
-    params.push(restaurantId);
+    params.push(filterRestaurantId);
     paramCount++;
   }
 
@@ -59,7 +73,16 @@ export const getTableById = asyncHandler(async (req: AuthRequest, res: Response)
     throw new AppError('Table not found', 404);
   }
 
-  return ResponseHandler.success(res, result.rows[0]);
+  const table = result.rows[0];
+
+  // Restaurant access control (except super_admin)
+  if (req.user?.role !== 'super_admin') {
+    if (table.restaurant_id !== req.user?.restaurantId) {
+      throw new AppError('Forbidden: Cannot access tables from other restaurants', 403);
+    }
+  }
+
+  return ResponseHandler.success(res, table);
 });
 
 // Create new table
@@ -70,6 +93,18 @@ export const createTable = asyncHandler(async (req: AuthRequest, res: Response) 
   if (!restaurant_id || !table_number || !capacity) {
     throw new AppError('Restaurant ID, table number, and capacity are required', 400);
   }
+
+  // Restaurant access control
+  if (req.user?.role !== 'super_admin') {
+    // Non-super_admin users can only create tables for their assigned restaurant
+    if (!req.user?.restaurantId) {
+      throw new AppError('User is not assigned to a restaurant', 403);
+    }
+    if (restaurant_id !== req.user.restaurantId) {
+      throw new AppError('Forbidden: Cannot create tables for other restaurants', 403);
+    }
+  }
+  // Super admin can create tables for any restaurant - no restrictions
 
   // Check if table number already exists for this restaurant
   const existingTable = await query(
@@ -102,11 +137,26 @@ export const updateTable = asyncHandler(async (req: AuthRequest, res: Response) 
   const { id } = req.params;
   const { table_number, capacity, location, status } = req.body;
 
-  // Check if table exists
-  const checkResult = await query('SELECT id FROM tables WHERE id = $1', [id]);
+  // Fetch table with restaurant_id to verify it exists and check ownership
+  const checkResult = await query(
+    'SELECT id, restaurant_id FROM tables WHERE id = $1',
+    [id]
+  );
 
   if (checkResult.rows.length === 0) {
     throw new AppError('Table not found', 404);
+  }
+
+  const table = checkResult.rows[0];
+
+  // Restaurant access control (except super_admin)
+  if (req.user?.role !== 'super_admin') {
+    if (!req.user?.restaurantId) {
+      throw new AppError('User is not assigned to a restaurant', 403);
+    }
+    if (table.restaurant_id !== req.user.restaurantId) {
+      throw new AppError('Forbidden: Cannot update tables from other restaurants', 403);
+    }
   }
 
   const result = await query(
@@ -129,9 +179,9 @@ export const updateTable = asyncHandler(async (req: AuthRequest, res: Response) 
 export const deleteTable = asyncHandler(async (req: AuthRequest, res: Response) => {
   const { id } = req.params;
 
-  // Check if table has an active session
+  // Fetch table with restaurant_id to check ownership and active session
   const tableCheck = await query(
-    `SELECT current_session_id FROM tables WHERE id = $1`,
+    `SELECT restaurant_id, current_session_id FROM tables WHERE id = $1`,
     [id]
   );
 
@@ -139,7 +189,19 @@ export const deleteTable = asyncHandler(async (req: AuthRequest, res: Response) 
     throw new AppError('Table not found', 404);
   }
 
-  if (tableCheck.rows[0].current_session_id) {
+  const table = tableCheck.rows[0];
+
+  // Restaurant access control (except super_admin)
+  if (req.user?.role !== 'super_admin') {
+    if (!req.user?.restaurantId) {
+      throw new AppError('User is not assigned to a restaurant', 403);
+    }
+    if (table.restaurant_id !== req.user.restaurantId) {
+      throw new AppError('Forbidden: Cannot delete tables from other restaurants', 403);
+    }
+  }
+
+  if (table.current_session_id) {
     throw new AppError('Cannot delete table with active session', 400);
   }
 
@@ -152,7 +214,7 @@ export const deleteTable = asyncHandler(async (req: AuthRequest, res: Response) 
 export const generateQRCode = asyncHandler(async (req: AuthRequest, res: Response) => {
   const { id } = req.params;
 
-  // Get table details
+  // Get table details with restaurant_id
   const result = await query(
     'SELECT id, table_number, qr_code, restaurant_id FROM tables WHERE id = $1',
     [id]
@@ -163,6 +225,17 @@ export const generateQRCode = asyncHandler(async (req: AuthRequest, res: Respons
   }
 
   const table = result.rows[0];
+
+  // Restaurant access control (except super_admin)
+  if (req.user?.role !== 'super_admin') {
+    if (!req.user?.restaurantId) {
+      throw new AppError('User is not assigned to a restaurant', 403);
+    }
+    if (table.restaurant_id !== req.user.restaurantId) {
+      throw new AppError('Forbidden: Cannot generate QR codes for other restaurants', 403);
+    }
+  }
+
   const qrCodeData = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/scan/${table.qr_code}`;
 
   try {
@@ -231,6 +304,28 @@ export const updateTableStatus = asyncHandler(async (req: AuthRequest, res: Resp
     throw new AppError('Invalid status', 400);
   }
 
+  // Fetch table with restaurant_id before updating
+  const tableCheck = await query(
+    'SELECT id, restaurant_id FROM tables WHERE id = $1',
+    [id]
+  );
+
+  if (tableCheck.rows.length === 0) {
+    throw new AppError('Table not found', 404);
+  }
+
+  const table = tableCheck.rows[0];
+
+  // Restaurant access control (except super_admin)
+  if (req.user?.role !== 'super_admin') {
+    if (!req.user?.restaurantId) {
+      throw new AppError('User is not assigned to a restaurant', 403);
+    }
+    if (table.restaurant_id !== req.user.restaurantId) {
+      throw new AppError('Forbidden: Cannot update status of tables from other restaurants', 403);
+    }
+  }
+
   const result = await query(
     `UPDATE tables
     SET status = $1, updated_at = CURRENT_TIMESTAMP
@@ -238,10 +333,6 @@ export const updateTableStatus = asyncHandler(async (req: AuthRequest, res: Resp
     RETURNING id, table_number, status`,
     [status, id]
   );
-
-  if (result.rows.length === 0) {
-    throw new AppError('Table not found', 404);
-  }
 
   return ResponseHandler.success(res, result.rows[0], 'Table status updated successfully');
 });
