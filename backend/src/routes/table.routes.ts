@@ -16,6 +16,10 @@ import { UserRole } from '@/interfaces/index';
 
 const router = Router();
 
+// Public route for QR code scanning (MUST come before /:id routes)
+// GET /api/v1/tables/scan/:qrCode - Get table by QR code (public)
+router.get('/scan/:qrCode', getTableByQRCode);
+
 // Admin routes
 
 // GET /api/v1/tables - Get all tables
@@ -92,10 +96,5 @@ router.get(
   [param('id').isUUID().withMessage('Valid table ID is required'), validate],
   generateQRCode
 );
-
-// Public route for QR code scanning
-
-// GET /api/v1/tables/scan/:qrCode - Get table by QR code (public)
-router.get('/scan/:qrCode', getTableByQRCode);
 
 export default router;
