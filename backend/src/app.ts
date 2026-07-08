@@ -50,6 +50,8 @@ import menuRoutes from './routes/menu.routes';
 import tableRoutes from './routes/table.routes';
 import sessionRoutes from './routes/session.routes';
 import orderRoutes from './routes/order.routes';
+import kitchenRoutes from './routes/kitchen.routes';
+import waiterRoutes from './routes/waiter.routes';
 
 // API routes
 app.use('/api/v1/auth', authRoutes);
@@ -58,6 +60,8 @@ app.use('/api/v1/menu', menuRoutes);
 app.use('/api/v1/tables', tableRoutes);
 app.use('/api/v1', sessionRoutes);
 app.use('/api/v1', orderRoutes);
+app.use('/api/v1', kitchenRoutes);
+app.use('/api/v1', waiterRoutes);
 // app.use('/api/v1/customer', customerRoutes);
 // app.use('/api/v1/kitchen', kitchenRoutes);
 // app.use('/api/v1/waiter', waiterRoutes);
