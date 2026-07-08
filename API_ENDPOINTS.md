@@ -524,3 +524,473 @@ All API responses follow this format:
 ---
 
 **Happy Testing!** 🚀
+
+
+---
+
+## 🪑 Table Management Endpoints
+
+### 1. Get All Tables
+- **GET** `/tables`
+- **Auth:** Bearer Token (Admin/Waiter)
+- **Query Parameters:**
+  - `restaurantId` (optional) - Filter by restaurant
+  - `status` (optional) - Filter by status (available/occupied/reserved/maintenance)
+- **Response:**
+```json
+{
+    "success": true,
+    "data": [
+        {
+            "id": "uuid",
+            "restaurant_id": "uuid",
+            "table_number": "T01",
+            "qr_code": "uuid",
+            "capacity": 4,
+            "location": "Ground Floor - Window",
+            "status": "available",
+            "current_session_id": null,
+            "created_at": "2024-01-15T10:00:00.000Z"
+        }
+    ]
+}
+```
+
+---
+
+### 2. Get Table by ID
+- **GET** `/tables/:id`
+- **Auth:** Bearer Token (Admin/Waiter)
+- **Response:**
+```json
+{
+    "success": true,
+    "data": {
+        "id": "uuid",
+        "table_number": "T01",
+        "capacity": 4,
+        "status": "occupied",
+        "current_session_id": "uuid",
+        "session_token": "session-token",
+        "customer_name": "John Doe",
+        "started_at": "2024-01-15T12:00:00.000Z"
+    }
+}
+```
+
+---
+
+### 3. Create Table
+- **POST** `/tables`
+- **Auth:** Bearer Token (Admin Only)
+- **Body:**
+```json
+{
+    "restaurant_id": "uuid",
+    "table_number": "T01",
+    "capacity": 4,
+    "location": "Ground Floor - Window"
+}
+```
+- **Response:**
+```json
+{
+    "success": true,
+    "data": {
+        "id": "uuid",
+        "table_number": "T01",
+        "qr_code": "generated-uuid",
+        "capacity": 4,
+        "status": "available"
+    },
+    "message": "Table created successfully"
+}
+```
+
+---
+
+### 4. Update Table
+- **PUT** `/tables/:id`
+- **Auth:** Bearer Token (Admin Only)
+- **Body:**
+```json
+{
+    "table_number": "T01-A",
+    "capacity": 6,
+    "location": "Updated Location",
+    "status": "available"
+}
+```
+- **Response:**
+```json
+{
+    "success": true,
+    "data": { ... },
+    "message": "Table updated successfully"
+}
+```
+
+---
+
+### 5. Delete Table
+- **DELETE** `/tables/:id`
+- **Auth:** Bearer Token (Admin Only)
+- **Response:**
+```json
+{
+    "success": true,
+    "message": "Table deleted successfully"
+}
+```
+
+---
+
+### 6. Update Table Status
+- **PATCH** `/tables/:id/status`
+- **Auth:** Bearer Token (Admin/Waiter)
+- **Body:**
+```json
+{
+    "status": "occupied"
+}
+```
+- **Valid Status Values:** `available`, `occupied`, `reserved`, `maintenance`
+- **Response:**
+```json
+{
+    "success": true,
+    "data": {
+        "id": "uuid",
+        "table_number": "T01",
+        "status": "occupied"
+    },
+    "message": "Table status updated successfully"
+}
+```
+
+---
+
+### 7. Generate QR Code
+- **GET** `/tables/:id/qr`
+- **Auth:** Bearer Token (Admin Only)
+- **Response:**
+```json
+{
+    "success": true,
+    "data": {
+        "table_id": "uuid",
+        "table_number": "T01",
+        "qr_code": "uuid",
+        "qr_code_url": "http://localhost:5173/scan/uuid",
+        "qr_code_image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUg..."
+    }
+}
+```
+
+---
+
+### 8. Get Table by QR Code (Public)
+- **GET** `/tables/scan/:qrCode`
+- **Auth:** None (Public)
+- **Example:** `/tables/scan/abc-123-def-456`
+- **Response:**
+```json
+{
+    "success": true,
+    "data": {
+        "id": "uuid",
+        "restaurant_id": "uuid",
+        "table_number": "T01",
+        "capacity": 4,
+        "location": "Ground Floor - Window",
+        "status": "available",
+        "restaurant_name": "Demo Restaurant",
+        "restaurant_logo": "https://...",
+        "tax_rate": "10.00",
+        "service_charge_rate": "5.00"
+    }
+}
+```
+
+---
+
+## 🔒 Updated Authorization Matrix
+
+| Endpoint | Super Admin | Restaurant Admin | Kitchen | Waiter | Cashier | Public |
+|----------|-------------|------------------|---------|--------|---------|--------|
+| GET /tables | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ |
+| GET /tables/:id | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ |
+| POST /tables | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| PUT /tables/:id | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| DELETE /tables/:id | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| PATCH /tables/:id/status | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ |
+| GET /tables/:id/qr | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| GET /tables/scan/:qrCode | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+
+---
+
+**Happy Testing!** 🚀
+
+
+---
+
+## Session Management (3 endpoints)
+
+### POST /api/v1/sessions
+Create a new dining session when customer scans QR code.
+
+**Authentication:** Not Required (Public)
+
+**Request Body:**
+```json
+{
+  "table_id": "uuid",
+  "customer_name": "John Doe",
+  "customer_phone": "+1234567890"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "session_id": "uuid",
+    "session_token": "unique-session-token",
+    "table_id": "uuid",
+    "restaurant_id": "uuid",
+    "customer_name": "John Doe",
+    "status": "active",
+    "started_at": "timestamp"
+  },
+  "message": "Session created successfully"
+}
+```
+
+---
+
+### GET /api/v1/sessions/:token
+Get active session details with orders.
+
+**Authentication:** Not Required (Public)
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "uuid",
+    "restaurant_id": "uuid",
+    "table_id": "uuid",
+    "session_token": "token",
+    "customer_name": "John Doe",
+    "customer_phone": "+1234567890",
+    "status": "active",
+    "started_at": "timestamp",
+    "completed_at": null,
+    "table_number": "T-01",
+    "capacity": 4,
+    "location": "Main Floor",
+    "restaurant_name": "The Gourmet Kitchen",
+    "restaurant_logo": "https://...",
+    "tax_rate": 10.0,
+    "service_charge_rate": 5.0,
+    "currency": "USD",
+    "orders": [
+      {
+        "id": "uuid",
+        "order_number": 1,
+        "status": "pending",
+        "subtotal": 25.00,
+        "tax_amount": 2.50,
+        "service_charge": 1.25,
+        "discount_amount": 0.00,
+        "total_amount": 28.75,
+        "created_at": "timestamp"
+      }
+    ]
+  }
+}
+```
+
+---
+
+### PATCH /api/v1/sessions/:token/complete
+Complete the dining session and release the table.
+
+**Authentication:** Not Required (Public)
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": null,
+  "message": "Session completed successfully"
+}
+```
+
+---
+
+## Order Management (4 endpoints)
+
+### POST /api/v1/orders
+Submit a customer order.
+
+**Authentication:** Not Required (Public)
+
+**Request Body:**
+```json
+{
+  "session_token": "unique-session-token",
+  "items": [
+    {
+      "menu_item_id": "uuid",
+      "quantity": 2,
+      "selected_variants": {
+        "Size": "Large",
+        "Spice Level": "Medium"
+      },
+      "special_instructions": "No onions"
+    }
+  ],
+  "special_instructions": "Please serve quickly"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "order_id": "uuid",
+    "order_number": 1,
+    "status": "pending",
+    "subtotal": 25.00,
+    "tax_amount": 2.50,
+    "service_charge": 1.25,
+    "total_amount": 28.75,
+    "created_at": "timestamp"
+  },
+  "message": "Order placed successfully"
+}
+```
+
+---
+
+### GET /api/v1/orders/:id
+Get order details with items.
+
+**Authentication:** Not Required (Public)
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "uuid",
+    "order_number": 1,
+    "status": "preparing",
+    "order_type": "dine_in",
+    "subtotal": 25.00,
+    "tax_amount": 2.50,
+    "service_charge": 1.25,
+    "discount_amount": 0.00,
+    "total_amount": 28.75,
+    "special_instructions": "Please serve quickly",
+    "created_at": "timestamp",
+    "confirmed_at": "timestamp",
+    "completed_at": null,
+    "session_token": "token",
+    "customer_name": "John Doe",
+    "items": [
+      {
+        "id": "uuid",
+        "quantity": 2,
+        "unit_price": 12.50,
+        "selected_variants": {"Size": "Large"},
+        "special_instructions": "No onions",
+        "status": "preparing",
+        "total_price": 25.00,
+        "item_name": "Margherita Pizza",
+        "image_url": "https://...",
+        "description": "Classic pizza"
+      }
+    ]
+  }
+}
+```
+
+---
+
+### GET /api/v1/sessions/:token/orders
+Get all orders for a session.
+
+**Authentication:** Not Required (Public)
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "uuid",
+      "order_number": 1,
+      "status": "served",
+      "order_type": "dine_in",
+      "subtotal": 25.00,
+      "tax_amount": 2.50,
+      "service_charge": 1.25,
+      "discount_amount": 0.00,
+      "total_amount": 28.75,
+      "special_instructions": null,
+      "created_at": "timestamp",
+      "confirmed_at": "timestamp",
+      "completed_at": "timestamp",
+      "items": [
+        {
+          "id": "uuid",
+          "quantity": 2,
+          "unit_price": 12.50,
+          "selected_variants": null,
+          "special_instructions": null,
+          "status": "served",
+          "total_price": 25.00,
+          "item_name": "Margherita Pizza",
+          "image_url": "https://..."
+        }
+      ]
+    }
+  ]
+}
+```
+
+---
+
+### PATCH /api/v1/orders/:id/status
+Update order status.
+
+**Authentication:** Not Required (Public - but should be restricted in production)
+
+**Request Body:**
+```json
+{
+  "status": "confirmed"
+}
+```
+
+**Valid Statuses:** `pending`, `confirmed`, `preparing`, `ready`, `served`, `cancelled`
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "uuid",
+    "order_number": 1,
+    "status": "confirmed",
+    "confirmed_at": "timestamp",
+    "completed_at": null
+  },
+  "message": "Order status updated successfully"
+}
+```
