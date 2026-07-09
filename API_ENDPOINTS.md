@@ -994,3 +994,544 @@ Update order status.
   "message": "Order status updated successfully"
 }
 ```
+
+
+---
+
+## Kitchen Management (3 endpoints)
+
+### GET /api/v1/kitchen/orders
+Get kitchen orders filtered by status.
+
+**Authentication:** Required  
+**Roles:** super_admin, restaurant_admin, kitchen_staff
+
+**Query Parameters:**
+- `restaurantId` (required for super_admin): Filter by restaurant
+- `status` (optional): Filter by status (pending, preparing, ready)
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "uuid",
+      "order_number": 1,
+      "status": "pending",
+      "order_type": "dine_in",
+      "subtotal": 25.00,
+      "tax_amount": 2.50,
+      "service_charge": 1.25,
+      "total_amount": 28.75,
+      "special_instructions": "No onions",
+      "created_at": "timestamp",
+      "confirmed_at": null,
+      "session_token": "token",
+      "customer_name": "John Doe",
+      "table_number": "T-01",
+      "location": "Main Floor",
+      "items": [
+        {
+          "id": "uuid",
+          "quantity": 2,
+          "unit_price": 12.50,
+          "selected_variants": {"Size": "Large"},
+          "special_instructions": "Extra cheese",
+          "status": "pending",
+          "total_price": 25.00,
+          "item_name": "Margherita Pizza",
+          "image_url": "https://...",
+          "preparation_time": 15
+        }
+      ],
+      "estimated_prep_time": 30
+    }
+  ]
+}
+```
+
+---
+
+### PATCH /api/v1/kitchen/orders/:id/status
+Update kitchen order status.
+
+**Authentication:** Required  
+**Roles:** super_admin, restaurant_admin, kitchen_staff
+
+**Request Body:**
+```json
+{
+  "status": "preparing"
+}
+```
+
+**Valid Statuses (Kitchen):** `preparing`, `ready`
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "uuid",
+    "order_number": 1,
+    "status": "preparing",
+    "confirmed_at": "timestamp"
+  },
+  "message": "Order status updated successfully"
+}
+```
+
+---
+
+### PATCH /api/v1/kitchen/order-items/:id/status
+Update individual order item status.
+
+**Authentication:** Required  
+**Roles:** super_admin, restaurant_admin, kitchen_staff
+
+**Request Body:**
+```json
+{
+  "status": "ready"
+}
+```
+
+**Valid Statuses:** `pending`, `preparing`, `ready`, `served`, `cancelled`
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "uuid",
+    "status": "ready"
+  },
+  "message": "Order item status updated successfully"
+}
+```
+
+---
+
+## Waiter Management (4 endpoints)
+
+### GET /api/v1/waiter/tables
+Get all tables for waiter's restaurant.
+
+**Authentication:** Required  
+**Roles:** super_admin, restaurant_admin, waiter
+
+**Query Parameters:**
+- `restaurantId` (required for super_admin): Filter by restaurant
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "uuid",
+      "table_number": "T-01",
+      "capacity": 4,
+      "location": "Main Floor",
+      "status": "occupied",
+      "current_session_id": "uuid",
+      "created_at": "timestamp",
+      "updated_at": "timestamp",
+      "session_token": "token",
+      "customer_name": "John Doe",
+      "started_at": "timestamp"
+    }
+  ]
+}
+```
+
+---
+
+### GET /api/v1/waiter/orders
+Get active orders for waiter's restaurant.
+
+**Authentication:** Required  
+**Roles:** super_admin, restaurant_admin, waiter
+
+**Query Parameters:**
+- `restaurantId` (required for super_admin): Filter by restaurant
+- `status` (optional): Filter by status
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "uuid",
+      "order_number": 1,
+      "status": "ready",
+      "order_type": "dine_in",
+      "subtotal": 25.00,
+      "tax_amount": 2.50,
+      "service_charge": 1.25,
+      "total_amount": 28.75,
+      "special_instructions": null,
+      "created_at": "timestamp",
+      "confirmed_at": "timestamp",
+      "session_token": "token",
+      "customer_name": "John Doe",
+      "table_number": "T-01",
+      "location": "Main Floor",
+      "items": [
+        {
+          "id": "uuid",
+          "quantity": 2,
+          "unit_price": 12.50,
+          "selected_variants": null,
+          "special_instructions": null,
+          "status": "ready",
+          "total_price": 25.00,
+          "item_name": "Margherita Pizza",
+          "image_url": "https://..."
+        }
+      ]
+    }
+  ]
+}
+```
+
+---
+
+### POST /api/v1/waiter/orders
+Place order on behalf of customer (waiter-assisted ordering).
+
+**Authentication:** Required  
+**Roles:** super_admin, restaurant_admin, waiter
+
+**Request Body:**
+```json
+{
+  "session_token": "unique-session-token",
+  "items": [
+    {
+      "menu_item_id": "uuid",
+      "quantity": 2,
+      "selected_variants": {
+        "Size": "Large",
+        "Spice Level": "Medium"
+      },
+      "special_instructions": "No onions"
+    }
+  ],
+  "special_instructions": "Please serve quickly"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "order_id": "uuid",
+    "order_number": 1,
+    "status": "pending",
+    "subtotal": 25.00,
+    "tax_amount": 2.50,
+    "service_charge": 1.25,
+    "total_amount": 28.75,
+    "created_at": "timestamp"
+  },
+  "message": "Order placed successfully by waiter"
+}
+```
+
+---
+
+### PATCH /api/v1/waiter/orders/:id/serve
+Mark order as served.
+
+**Authentication:** Required  
+**Roles:** super_admin, restaurant_admin, waiter
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "uuid",
+    "order_number": 1,
+    "status": "served",
+    "completed_at": "timestamp"
+  },
+  "message": "Order marked as served"
+}
+```
+
+---
+
+## API Summary
+
+**Total Endpoints: 30**
+
+- Authentication: 4 endpoints
+- User Management: 6 endpoints
+- Menu Management: 7 endpoints
+- Table Management: 8 endpoints
+- Session Management: 3 endpoints
+- Order Management: 4 endpoints
+- Kitchen Management: 3 endpoints
+- Waiter Management: 4 endpoints
+
+
+---
+
+## Cashier/Payment Management (6 endpoints)
+
+### GET /api/v1/cashier/sessions/active
+Get all active sessions (unpaid bills).
+
+**Authentication:** Required  
+**Roles:** super_admin, restaurant_admin, cashier
+
+**Query Parameters:**
+- `restaurantId` (required for super_admin): Filter by restaurant
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "uuid",
+      "session_token": "token",
+      "customer_name": "John Doe",
+      "customer_phone": "+1234567890",
+      "status": "active",
+      "started_at": "timestamp",
+      "table_number": "T-01",
+      "location": "Main Floor"
+    }
+  ]
+}
+```
+
+---
+
+### GET /api/v1/cashier/sessions/:token/bill
+Get complete bill for a session.
+
+**Authentication:** Required  
+**Roles:** super_admin, restaurant_admin, cashier
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "session": {
+      "session_token": "token",
+      "customer_name": "John Doe",
+      "customer_phone": "+1234567890",
+      "table_number": "T-01",
+      "location": "Main Floor",
+      "restaurant_name": "The Gourmet Kitchen",
+      "started_at": "timestamp",
+      "currency": "USD"
+    },
+    "orders": [
+      {
+        "id": "uuid",
+        "order_number": 1,
+        "status": "served",
+        "subtotal": 25.00,
+        "tax_amount": 2.50,
+        "service_charge": 1.25,
+        "discount_amount": 0.00,
+        "total_amount": 28.75,
+        "created_at": "timestamp",
+        "items": [
+          {
+            "id": "uuid",
+            "quantity": 2,
+            "unit_price": 12.50,
+            "selected_variants": null,
+            "total_price": 25.00,
+            "item_name": "Margherita Pizza"
+          }
+        ]
+      }
+    ],
+    "bill": {
+      "subtotal": "25.00",
+      "tax_amount": "2.50",
+      "service_charge": "1.25",
+      "discount_amount": "0.00",
+      "total_amount": "28.75",
+      "tax_rate": 10.0,
+      "service_charge_rate": 5.0
+    }
+  }
+}
+```
+
+---
+
+### GET /api/v1/cashier/sessions/:token/orders
+Get all orders for a session.
+
+**Authentication:** Required  
+**Roles:** super_admin, restaurant_admin, cashier
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "uuid",
+      "order_number": 1,
+      "status": "served",
+      "order_type": "dine_in",
+      "subtotal": 25.00,
+      "tax_amount": 2.50,
+      "service_charge": 1.25,
+      "discount_amount": 0.00,
+      "total_amount": 28.75,
+      "special_instructions": null,
+      "created_at": "timestamp",
+      "items": [
+        {
+          "id": "uuid",
+          "quantity": 2,
+          "unit_price": 12.50,
+          "selected_variants": null,
+          "special_instructions": null,
+          "status": "served",
+          "total_price": 25.00,
+          "item_name": "Margherita Pizza"
+        }
+      ]
+    }
+  ]
+}
+```
+
+---
+
+### POST /api/v1/cashier/payments
+Record a payment for a session.
+
+**Authentication:** Required  
+**Roles:** super_admin, restaurant_admin, cashier
+
+**Request Body:**
+```json
+{
+  "session_token": "unique-session-token",
+  "amount": 28.75,
+  "payment_method": "cash",
+  "tip_amount": 5.00
+}
+```
+
+**Valid Payment Methods:** `cash`, `card`, `digital_wallet`, `online`
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "payment_id": "uuid",
+    "amount": 33.75,
+    "payment_method": "cash",
+    "status": "completed",
+    "tip_amount": "5.00",
+    "bill_total": "28.75",
+    "created_at": "timestamp"
+  },
+  "message": "Payment recorded successfully"
+}
+```
+
+---
+
+### GET /api/v1/cashier/payments/:id
+Get payment details.
+
+**Authentication:** Required  
+**Roles:** super_admin, restaurant_admin, cashier
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "uuid",
+    "restaurant_id": "uuid",
+    "session_id": "uuid",
+    "amount": 33.75,
+    "payment_method": "cash",
+    "status": "completed",
+    "transaction_id": null,
+    "created_at": "timestamp",
+    "completed_at": "timestamp",
+    "session_token": "token",
+    "customer_name": "John Doe"
+  }
+}
+```
+
+---
+
+### GET /api/v1/cashier/transactions/today
+Get today's transactions summary.
+
+**Authentication:** Required  
+**Roles:** super_admin, restaurant_admin, cashier
+
+**Query Parameters:**
+- `restaurantId` (required for super_admin): Filter by restaurant
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "transactions": [
+      {
+        "id": "uuid",
+        "amount": 33.75,
+        "payment_method": "cash",
+        "status": "completed",
+        "created_at": "timestamp",
+        "completed_at": "timestamp",
+        "session_token": "token",
+        "customer_name": "John Doe",
+        "table_number": "T-01"
+      }
+    ],
+    "summary": {
+      "total_amount": "250.50",
+      "transaction_count": 8,
+      "by_payment_method": {
+        "cash": 120.25,
+        "card": 100.00,
+        "digital_wallet": 30.25
+      }
+    }
+  }
+}
+```
+
+---
+
+## API Summary
+
+**Total Endpoints: 36**
+
+- Authentication: 4 endpoints
+- User Management: 6 endpoints
+- Menu Management: 7 endpoints
+- Table Management: 8 endpoints
+- Session Management: 3 endpoints
+- Order Management: 4 endpoints
+- Kitchen Management: 3 endpoints
+- Waiter Management: 4 endpoints
+- Cashier/Payment Management: 6 endpoints
