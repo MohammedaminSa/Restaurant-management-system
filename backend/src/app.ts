@@ -53,6 +53,8 @@ import orderRoutes from './routes/order.routes';
 import kitchenRoutes from './routes/kitchen.routes';
 import waiterRoutes from './routes/waiter.routes';
 import cashierRoutes from './routes/cashier.routes';
+import inventoryRoutes from './routes/inventory.routes';
+import promotionRoutes from './routes/promotion.routes';
 
 // API routes
 app.use('/api/v1/auth', authRoutes);
@@ -64,6 +66,8 @@ app.use('/api/v1', orderRoutes);
 app.use('/api/v1', kitchenRoutes);
 app.use('/api/v1', waiterRoutes);
 app.use('/api/v1', cashierRoutes);
+app.use('/api/v1', inventoryRoutes);
+app.use('/api/v1', promotionRoutes);
 // app.use('/api/v1/customer', customerRoutes);
 // app.use('/api/v1/kitchen', kitchenRoutes);
 // app.use('/api/v1/waiter', waiterRoutes);
