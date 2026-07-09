@@ -228,59 +228,180 @@
 
 ## Phase 8: Frontend Development 🎨
 
-### Frontend Foundation
-- [ ] Set up routing structure
-- [ ] Create base layout components
-- [ ] Configure UI framework (MUI/Tailwind)
-- [ ] Build loading and error states
+### 8.1: Frontend Foundation & Routing
+- [ ] **8.1.1**: Set up React Router with BrowserRouter in main.tsx
+- [ ] **8.1.2**: Create route structure with public and protected routes
+- [ ] **8.1.3**: Create Layout component with AppBar and Container
+- [ ] **8.1.4**: Build LoadingSpinner component (MUI CircularProgress)
+- [ ] **8.1.5**: Build ErrorBoundary component for error handling
+- [ ] **8.1.6**: Create NotFound 404 page component
+- [ ] **8.1.7**: Set up React Query QueryClientProvider with default options
 
-### Authentication UI
-- [ ] Build login page
-- [ ] Create AuthContext and useAuth hook
-- [ ] Implement protected routes
-- [ ] Build logout functionality
+### 8.2: Customer App - QR Scan & Session Flow
+- [ ] **8.2.1**: Create `/scan/:qrCode` route and QRScanPage component
+- [ ] **8.2.2**: Build API service function: `getTableByQRCode(qrCode)` in `services/api.ts`
+- [ ] **8.2.3**: Build API service function: `createSession(tableId, customerName, phone)` in `services/api.ts`
+- [ ] **8.2.4**: Create CustomerInfoForm component (name + phone input with validation)
+- [ ] **8.2.5**: Implement session creation flow (scan QR → show table info → collect customer info → create session)
+- [ ] **8.2.6**: Store session token in localStorage after session creation
+- [ ] **8.2.7**: Create SessionContext with React Context for managing active session state
+- [ ] **8.2.8**: Redirect to menu page after successful session creation
 
-### Customer App
-- [ ] Create QR scan landing page
-- [ ] Build MenuCard component
-- [ ] Create CategoryFilter component
-- [ ] Build MenuItemDetail with variants
-- [ ] Create CartContext
-- [ ] Build CartSheet component
-- [ ] Implement cart persistence
-- [ ] Create order placement UI
-- [ ] Build order tracking UI
+### 8.3: Customer App - Menu Browsing
+- [ ] **8.3.1**: Create `/menu` route and MenuPage component layout
+- [ ] **8.3.2**: Build API service functions: `getCategories()` and `getMenuItems(filters)` in `services/api.ts`
+- [ ] **8.3.3**: Create CategoryTabs component (MUI Tabs) for category filtering
+- [ ] **8.3.4**: Build MenuItemCard component (display item with image, name, price, description)
+- [ ] **8.3.5**: Add "Add to Cart" button to MenuItemCard with quantity selector
+- [ ] **8.3.6**: Implement search bar in MenuPage for searching menu items
+- [ ] **8.3.7**: Add dietary/allergen filter chips (vegetarian, vegan, gluten-free)
+- [ ] **8.3.8**: Show "Featured Items" section at top of menu
+- [ ] **8.3.9**: Handle loading states with skeleton loaders (MUI Skeleton)
+- [ ] **8.3.10**: Handle empty states (no items found)
 
-### Kitchen App
-- [ ] Create KitchenDashboard page
-- [ ] Build OrderCard component for kitchen
-- [ ] Add order status update controls
-- [ ] Create kitchen timer component
-- [ ] Implement WebSocket integration
+### 8.4: Customer App - Menu Item Detail & Variants
+- [ ] **8.4.1**: Create `/menu/:itemId` route and MenuItemDetailPage component
+- [ ] **8.4.2**: Build API service function: `getMenuItemById(itemId)` in `services/api.ts`
+- [ ] **8.4.3**: Create VariantSelector component for single_select variants (Radio buttons)
+- [ ] **8.4.4**: Create VariantSelector component for multi_select variants (Checkboxes)
+- [ ] **8.4.5**: Calculate and display dynamic price based on selected variants
+- [ ] **8.4.6**: Add quantity selector (- / number / +)
+- [ ] **8.4.7**: Add special instructions TextField (optional notes)
+- [ ] **8.4.8**: Validate required variants before adding to cart
+- [ ] **8.4.9**: Show allergen warnings and dietary info badges
+- [ ] **8.4.10**: Add "Add to Cart" button with variant selections
 
-### Waiter App
-- [ ] Create TableGrid component
-- [ ] Build TableDetail view
-- [ ] Create WaiterDashboard page
-- [ ] Build active orders view
-- [ ] Add order action buttons
+### 8.5: Customer App - Cart Management (Zustand Store)
+- [ ] **8.5.1**: Create Zustand store: `useCartStore` in `stores/cartStore.ts`
+- [ ] **8.5.2**: Implement cart actions: `addItem`, `removeItem`, `updateQuantity`, `clearCart`
+- [ ] **8.5.3**: Implement cart calculations: `subtotal`, `itemCount`, `totalWithVariants`
+- [ ] **8.5.4**: Create CartDrawer component (MUI Drawer from right side)
+- [ ] **8.5.5**: Build CartItem component showing item + variants + quantity controls
+- [ ] **8.5.6**: Add FloatingCartButton (FAB) showing cart item count badge
+- [ ] **8.5.7**: Implement cart persistence in localStorage (save/restore on load)
+- [ ] **8.5.8**: Show empty cart state with "Browse Menu" CTA
+- [ ] **8.5.9**: Add "Place Order" button in CartDrawer footer
+- [ ] **8.5.10**: Show calculated totals (subtotal, tax, service charge, total)
 
-### Cashier App
-- [ ] Build CashierDashboard page
-- [ ] Create SessionList component
-- [ ] Build PaymentForm component
-- [ ] Implement invoice UI
-- [ ] Add print functionality
+### 8.6: Customer App - Order Placement
+- [ ] **8.6.1**: Create `/checkout` route and CheckoutPage component
+- [ ] **8.6.2**: Build API service function: `placeOrder(sessionToken, items, instructions)` in `services/api.ts`
+- [ ] **8.6.3**: Create OrderSummary component showing all cart items and totals
+- [ ] **8.6.4**: Add optional order-level special instructions field
+- [ ] **8.6.5**: Implement order submission with loading state
+- [ ] **8.6.6**: Show success dialog with order number after placement
+- [ ] **8.6.7**: Clear cart after successful order placement
+- [ ] **8.6.8**: Redirect to order tracking page after success
+- [ ] **8.6.9**: Handle API errors (item unavailable, session expired, etc.)
+- [ ] **8.6.10**: Add confirmation dialog before placing order
 
-### Admin App
-- [ ] Create MenuItemForm component
-- [ ] Build menu item list with actions
-- [ ] Create TableForm component
-- [ ] Build table list view
-- [ ] Create UserForm component
-- [ ] Build user management UI
-- [ ] Create InventoryTable component
-- [ ] Build AnalyticsDashboard component
+### 8.7: Customer App - Order Tracking
+- [ ] **8.7.1**: Create `/orders` route and OrderTrackingPage component
+- [ ] **8.7.2**: Build API service functions: `getSessionOrders(sessionToken)` and `getOrderById(orderId)` in `services/api.ts`
+- [ ] **8.7.3**: Create OrderStatusCard component showing order with status badge
+- [ ] **8.7.4**: Implement status timeline (pending → confirmed → preparing → ready → served)
+- [ ] **8.7.5**: Show order items list for each order
+- [ ] **8.7.6**: Add auto-refresh using React Query polling (refetchInterval: 10000)
+- [ ] **8.7.7**: Show estimated preparation time for active orders
+- [ ] **8.7.8**: Add "Order More" button to return to menu
+- [ ] **8.7.9**: Show bill summary with all orders (subtotal + tax + service charge)
+- [ ] **8.7.10**: Create "Request Bill" button to complete session
+
+### 8.8: Authentication UI (Staff Login)
+- [ ] **8.8.1**: Create `/login` route and LoginPage component
+- [ ] **8.8.2**: Build API service functions: `login(email, password)`, `logout()`, `getCurrentUser()` in `services/api.ts`
+- [ ] **8.8.3**: Create AuthContext with React Context (user state, login, logout methods)
+- [ ] **8.8.4**: Create useAuth hook to access AuthContext
+- [ ] **8.8.5**: Build LoginForm with email and password fields (react-hook-form validation)
+- [ ] **8.8.6**: Store tokens (accessToken, refreshToken) in localStorage on login
+- [ ] **8.8.7**: Create ProtectedRoute component (check auth before rendering)
+- [ ] **8.8.8**: Redirect to appropriate dashboard based on user role after login
+- [ ] **8.8.9**: Add logout functionality in AppBar user menu
+- [ ] **8.8.10**: Handle token refresh automatically (already in api.ts interceptor)
+
+### 8.9: Kitchen Dashboard
+- [ ] **8.9.1**: Create `/kitchen` route and KitchenDashboard page
+- [ ] **8.9.2**: Build API service functions: `getKitchenOrders(restaurantId, status)`, `updateKitchenOrderStatus(orderId, status)` in `services/api.ts`
+- [ ] **8.9.3**: Create KitchenOrderCard component (show order details, table, items)
+- [ ] **8.9.4**: Add status filter tabs (All, Pending, Preparing, Ready)
+- [ ] **8.9.5**: Implement "Start Preparing" button (pending → preparing)
+- [ ] **8.9.6**: Implement "Mark Ready" button (preparing → ready)
+- [ ] **8.9.7**: Show order timer (time since order placed)
+- [ ] **8.9.8**: Add sound notification for new orders (optional)
+- [ ] **8.9.9**: Implement auto-refresh with React Query polling
+- [ ] **8.9.10**: Group orders by table number
+
+### 8.10: Waiter Dashboard
+- [ ] **8.10.1**: Create `/waiter` route and WaiterDashboard page
+- [ ] **8.10.2**: Build API service functions: `getWaiterTables(restaurantId)`, `getWaiterOrders(restaurantId)`, `serveOrder(orderId)` in `services/api.ts`
+- [ ] **8.10.3**: Create TableGrid component showing all tables with status colors
+- [ ] **8.10.4**: Create TableCard component (table number, capacity, status, customer name)
+- [ ] **8.10.5**: Create OrdersList component for active orders
+- [ ] **8.10.6**: Implement "Mark as Served" button for ready orders
+- [ ] **8.10.7**: Show table session information (customer name, time seated)
+- [ ] **8.10.8**: Add filter for table status (available, occupied, reserved)
+- [ ] **8.10.9**: Implement click to view table details
+- [ ] **8.10.10**: Add manual order placement option (future)
+
+### 8.11: Cashier Dashboard
+- [ ] **8.11.1**: Create `/cashier` route and CashierDashboard page
+- [ ] **8.11.2**: Build API service functions: `getActiveSessions(restaurantId)`, `getSessionBill(sessionToken)`, `recordPayment(sessionToken, amount, method, tip)` in `services/api.ts`
+- [ ] **8.11.3**: Create SessionCard component (table, customer, duration, unpaid bill)
+- [ ] **8.11.4**: Create BillDialog component showing detailed bill breakdown
+- [ ] **8.11.5**: Create PaymentForm component (amount, payment method selector, tip field)
+- [ ] **8.11.6**: Implement payment recording flow
+- [ ] **8.11.7**: Show payment success confirmation
+- [ ] **8.11.8**: Auto-close session after payment recorded
+- [ ] **8.11.9**: Add print/download receipt button (future)
+- [ ] **8.11.10**: Show today's transaction summary
+
+### 8.12: Admin Panel - Menu Management
+- [ ] **8.12.1**: Create `/admin/menu` route and MenuManagementPage
+- [ ] **8.12.2**: Build API service functions: `createMenuItem(data)`, `updateMenuItem(id, data)`, `deleteMenuItem(id)`, `toggleMenuItemAvailability(id)` in `services/api.ts`
+- [ ] **8.12.3**: Create MenuItemsTable component with DataGrid (MUI)
+- [ ] **8.12.4**: Create MenuItemDialog component for add/edit (form with validation)
+- [ ] **8.12.5**: Implement quick toggle for availability (switch button)
+- [ ] **8.12.6**: Add search and filter by category
+- [ ] **8.12.7**: Show variant details in expanded row
+- [ ] **8.12.8**: Implement delete confirmation dialog
+- [ ] **8.12.9**: Add image upload field (placeholder for now)
+- [ ] **8.12.10**: Handle form validation with react-hook-form
+
+### 8.13: Admin Panel - Table Management
+- [ ] **8.13.1**: Create `/admin/tables` route and TableManagementPage
+- [ ] **8.13.2**: Build API service functions: `createTable(data)`, `updateTable(id, data)`, `deleteTable(id)`, `generateTableQR(id)` in `services/api.ts`
+- [ ] **8.13.3**: Create TablesTable component with DataGrid
+- [ ] **8.13.4**: Create TableDialog component for add/edit
+- [ ] **8.13.5**: Add "Generate QR Code" button per table
+- [ ] **8.13.6**: Show QR code in dialog with download option (qrcode.react)
+- [ ] **8.13.7**: Add status badge with color coding
+- [ ] **8.13.8**: Implement delete confirmation dialog
+- [ ] **8.13.9**: Show current session info if table occupied
+- [ ] **8.13.10**: Add bulk QR code generation (all tables)
+
+### 8.14: Admin Panel - User Management
+- [ ] **8.14.1**: Create `/admin/users` route and UserManagementPage
+- [ ] **8.14.2**: Build API service functions: `getUsers(filters)`, `createUser(data)`, `updateUser(id, data)`, `deleteUser(id)` in `services/api.ts`
+- [ ] **8.14.3**: Create UsersTable component with DataGrid
+- [ ] **8.14.4**: Create UserDialog component for add/edit
+- [ ] **8.14.5**: Add role selector dropdown (filter super_admin for non-super-admins)
+- [ ] **8.14.6**: Show is_active status with toggle switch
+- [ ] **8.14.7**: Add search by name/email
+- [ ] **8.14.8**: Add filter by role
+- [ ] **8.14.9**: Implement delete confirmation dialog
+- [ ] **8.14.10**: Handle password field (required on create, optional on update)
+
+### 8.15: Shared UI Components & Polish
+- [ ] **8.15.1**: Create ConfirmDialog reusable component
+- [ ] **8.15.2**: Create SuccessSnackbar for showing success messages
+- [ ] **8.15.3**: Create ErrorSnackbar for showing error messages
+- [ ] **8.15.4**: Create EmptyState component (icon + message + CTA)
+- [ ] **8.15.5**: Create PageHeader component (title + actions)
+- [ ] **8.15.6**: Add responsive design breakpoints for mobile/tablet
+- [ ] **8.15.7**: Create theme configuration (MUI theme with restaurant colors)
+- [ ] **8.15.8**: Add loading skeletons for all list views
+- [ ] **8.15.9**: Implement proper error handling in all API calls
+- [ ] **8.15.10**: Add accessibility attributes (aria-labels, roles)
 
 ---
 
@@ -382,3 +503,65 @@
 ```
 
 **Overall Progress: ~50%** (Backend API fully functional!)
+
+---
+
+## 📋 Implementation Notes
+
+### Phase 8 - Frontend Development Approach
+
+**Build Order:**
+1. **Foundation First** (8.1): Set up routing, layouts, error handling
+2. **Customer Flow** (8.2-8.7): Most important - allows customers to order
+3. **Staff Authentication** (8.8): Required for all staff interfaces
+4. **Staff Interfaces** (8.9-8.11): Kitchen, Waiter, Cashier dashboards
+5. **Admin Panel** (8.12-8.14): Menu, Table, User management
+6. **Polish** (8.15): Shared components, responsive design, accessibility
+
+**Technology Stack:**
+- React 19 + TypeScript
+- Material-UI (MUI) for components
+- React Router DOM for routing
+- Zustand for cart state management
+- React Query for server state & caching
+- React Hook Form for form validation
+- Axios for API calls (already configured)
+
+**Key Files:**
+- `frontend/src/services/api.ts` - API service functions
+- `frontend/src/types/index.ts` - TypeScript interfaces
+- `frontend/src/stores/cartStore.ts` - Cart state (Zustand)
+- `frontend/src/contexts/AuthContext.tsx` - Auth state
+- `frontend/src/contexts/SessionContext.tsx` - Customer session state
+
+**API Integration:**
+- All API endpoints are already built and documented in `API_ENDPOINTS.md`
+- Base URL: `http://localhost:5000/api/v1`
+- Auth interceptor already configured in `api.ts`
+
+---
+
+## 🚀 Ready to Implement!
+
+The spec is complete! You can now begin implementing the frontend tasks by following the detailed tasks in Phase 8 above.
+
+**Recommended approach:**
+- Implement tasks in order (8.1 → 8.2 → 8.3, etc.)
+- Each sub-phase builds on the previous one
+- Test each feature as you complete it
+- Use the running backend API for integration testing
+
+**To start development:**
+```bash
+# Backend (Terminal 1)
+cd backend
+npm run dev
+
+# Frontend (Terminal 2)
+cd frontend
+npm run dev
+```
+
+The frontend will run on `http://localhost:5173` and connect to the backend at `http://localhost:5000`.
+
+---
