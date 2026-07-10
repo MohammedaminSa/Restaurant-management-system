@@ -1,122 +1,50 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { Routes, Route, Navigate } from 'react-router-dom';
+import Layout from './components/Layout.tsx';
+import NotFound from './pages/NotFound.tsx';
+import QRScanPage from './pages/customer/QRScanPage.tsx';
+import MenuPage from './pages/customer/MenuPage.tsx';
+import MenuItemDetailPage from './pages/customer/MenuItemDetailPage.tsx';
+import CheckoutPage from './pages/customer/CheckoutPage.tsx';
+import OrderTrackingPage from './pages/customer/OrderTrackingPage.tsx';
+import LoginPage from './pages/auth/LoginPage.tsx';
+import KitchenDashboard from './pages/kitchen/KitchenDashboard.tsx';
+import WaiterDashboard from './pages/waiter/WaiterDashboard.tsx';
+import CashierDashboard from './pages/cashier/CashierDashboard.tsx';
+import MenuManagementPage from './pages/admin/MenuManagementPage.tsx';
+import TableManagementPage from './pages/admin/TableManagementPage.tsx';
+import UserManagementPage from './pages/admin/UserManagementPage.tsx';
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <Routes>
+      {/* Public Routes - Customer Flow */}
+      <Route path="/" element={<Navigate to="/scan/demo-qr-code" replace />} />
+      <Route path="/scan/:qrCode" element={<QRScanPage />} />
+      
+      <Route element={<Layout />}>
+        <Route path="/menu" element={<MenuPage />} />
+        <Route path="/menu/:itemId" element={<MenuItemDetailPage />} />
+        <Route path="/checkout" element={<CheckoutPage />} />
+        <Route path="/orders" element={<OrderTrackingPage />} />
+      </Route>
 
-      <div className="ticks"></div>
+      {/* Auth Routes */}
+      <Route path="/login" element={<LoginPage />} />
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+      {/* Protected Staff Routes */}
+      <Route element={<Layout />}>
+        <Route path="/kitchen" element={<KitchenDashboard />} />
+        <Route path="/waiter" element={<WaiterDashboard />} />
+        <Route path="/cashier" element={<CashierDashboard />} />
+        <Route path="/admin/menu" element={<MenuManagementPage />} />
+        <Route path="/admin/tables" element={<TableManagementPage />} />
+        <Route path="/admin/users" element={<UserManagementPage />} />
+      </Route>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+      {/* 404 Not Found */}
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
 }
 
-export default App
+export default App;
