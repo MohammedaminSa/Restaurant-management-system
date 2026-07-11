@@ -301,4 +301,132 @@ export const getSessionOrders = async (sessionToken: string): Promise<ApiRespons
   return response.data;
 };
 
+// ============================================
+// KITCHEN APIs
+// ============================================
+
+export interface KitchenOrdersQuery {
+  status?: 'pending' | 'confirmed' | 'preparing' | 'ready';
+  restaurantId?: string;
+}
+
+/**
+ * Get kitchen orders (Protected - kitchen_staff)
+ */
+export const getKitchenOrders = async (query: KitchenOrdersQuery = {}): Promise<ApiResponse<PlacedOrder[]>> => {
+  const response = await api.get('/kitchen/orders', { params: query });
+  return response.data;
+};
+
+/**
+ * Update order status in kitchen (Protected - kitchen_staff)
+ */
+export const updateKitchenOrderStatus = async (orderId: string, status: string): Promise<ApiResponse<PlacedOrder>> => {
+  const response = await api.patch(`/kitchen/orders/${orderId}/status`, { status });
+  return response.data;
+};
+
+// ============================================
+// WAITER APIs
+// ============================================
+
+export interface WaiterTable {
+  id: string;
+  table_number: string;
+  capacity: number;
+  location: string;
+  status: string;
+  qr_code: string;
+  session_id?: string;
+  customer_name?: string;
+  customer_phone?: string;
+  session_started_at?: string;
+}
+
+/**
+ * Get all tables for waiter (Protected - waiter)
+ */
+export const getWaiterTables = async (restaurantId?: string): Promise<ApiResponse<WaiterTable[]>> => {
+  const params = restaurantId ? { restaurantId } : {};
+  const response = await api.get('/waiter/tables', { params });
+  return response.data;
+};
+
+/**
+ * Get waiter orders (Protected - waiter)
+ */
+export const getWaiterOrders = async (restaurantId?: string): Promise<ApiResponse<PlacedOrder[]>> => {
+  const params = restaurantId ? { restaurantId } : {};
+  const response = await api.get('/waiter/orders', { params });
+  return response.data;
+};
+
+/**
+ * Mark order as served (Protected - waiter)
+ */
+export const serveOrder = async (orderId: string): Promise<ApiResponse<PlacedOrder>> => {
+  const response = await api.patch(`/orders/${orderId}/serve`);
+  return response.data;
+};
+
+// ============================================
+// CASHIER APIs
+// ============================================
+
+export interface SessionBill {
+  session_id: string;
+  table_number: string;
+  customer_name: string;
+  session_started_at: string;
+  orders: PlacedOrder[];
+  subtotal: number;
+  tax_amount: number;
+  service_charge: number;
+  total_amount: number;
+}
+
+export interface PaymentRequest {
+  session_token: string;
+  amount: number;
+  payment_method: 'cash' | 'card' | 'digital_wallet';
+  tip_amount?: number;
+  notes?: string;
+}
+
+export interface PaymentResponse {
+  id: string;
+  session_id: string;
+  amount: string;
+  payment_method: string;
+  tip_amount: string;
+  total_paid: string;
+  payment_date: string;
+  notes?: string;
+}
+
+/**
+ * Get session bill (Protected - cashier)
+ */
+export const getSessionBill = async (sessionToken: string): Promise<ApiResponse<SessionBill>> => {
+  const response = await api.get(`/sessions/${sessionToken}/bill`);
+  return response.data;
+};
+
+/**
+ * Record payment (Protected - cashier)
+ */
+export const recordPayment = async (data: PaymentRequest): Promise<ApiResponse<PaymentResponse>> => {
+  const response = await api.post('/payments', data);
+  return response.data;
+};
+
+/**
+ * Get all active sessions (Protected - cashier)
+ */
+export const getActiveSessions = async (restaurantId?: string): Promise<ApiResponse<any[]>> => {
+  const params = restaurantId ? { restaurantId } : {};
+  const response = await api.get('/cashier/active-sessions', { params });
+  return response.data;
+};
+
 export default api;
