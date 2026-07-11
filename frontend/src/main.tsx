@@ -8,6 +8,7 @@ import App from './App.tsx'
 import theme from './theme.ts'
 import ErrorBoundary from './components/ErrorBoundary.tsx'
 import { SessionProvider } from './contexts/SessionContext.tsx'
+import { AuthProvider } from './contexts/AuthContext.tsx'
 
 // Create React Query client with default options
 const queryClient = new QueryClient({
@@ -26,10 +27,12 @@ createRoot(document.getElementById('root')!).render(
       <BrowserRouter>
         <QueryClientProvider client={queryClient}>
           <ThemeProvider theme={theme}>
-            <SessionProvider>
-              <CssBaseline />
-              <App />
-            </SessionProvider>
+            <AuthProvider>
+              <SessionProvider>
+                <CssBaseline />
+                <App />
+              </SessionProvider>
+            </AuthProvider>
           </ThemeProvider>
         </QueryClientProvider>
       </BrowserRouter>
