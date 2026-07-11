@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout.tsx';
+import ProtectedRoute from './components/ProtectedRoute.tsx';
 import NotFound from './pages/NotFound.tsx';
 import QRScanPage from './pages/customer/QRScanPage.tsx';
 import MenuPage from './pages/customer/MenuPage.tsx';
@@ -33,12 +34,54 @@ function App() {
 
       {/* Protected Staff Routes */}
       <Route element={<Layout />}>
-        <Route path="/kitchen" element={<KitchenDashboard />} />
-        <Route path="/waiter" element={<WaiterDashboard />} />
-        <Route path="/cashier" element={<CashierDashboard />} />
-        <Route path="/admin/menu" element={<MenuManagementPage />} />
-        <Route path="/admin/tables" element={<TableManagementPage />} />
-        <Route path="/admin/users" element={<UserManagementPage />} />
+        <Route
+          path="/kitchen"
+          element={
+            <ProtectedRoute allowedRoles={['kitchen_staff', 'super_admin']}>
+              <KitchenDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/waiter"
+          element={
+            <ProtectedRoute allowedRoles={['waiter', 'super_admin']}>
+              <WaiterDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/cashier"
+          element={
+            <ProtectedRoute allowedRoles={['cashier', 'super_admin']}>
+              <CashierDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/menu"
+          element={
+            <ProtectedRoute allowedRoles={['restaurant_admin', 'super_admin']}>
+              <MenuManagementPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/tables"
+          element={
+            <ProtectedRoute allowedRoles={['restaurant_admin', 'super_admin']}>
+              <TableManagementPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/users"
+          element={
+            <ProtectedRoute allowedRoles={['restaurant_admin', 'super_admin']}>
+              <UserManagementPage />
+            </ProtectedRoute>
+          }
+        />
       </Route>
 
       {/* 404 Not Found */}
