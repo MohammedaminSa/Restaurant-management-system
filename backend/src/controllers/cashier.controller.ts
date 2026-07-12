@@ -27,10 +27,15 @@ export const getActiveSessions = asyncHandler(async (req: AuthRequest, res: Resp
     `SELECT 
       os.id, os.session_token, os.customer_name, os.customer_phone,
       os.status, os.started_at,
-      t.table_number, t.location
+      t.table_number, t.location,
+      COUNT(DISTINCT o.id) as order_count,
+      COALESCE(SUM(o.total_amount), 0) as total_bill
     FROM order_sessions os
     JOIN tables t ON os.table_id = t.id
+    LEFT JOIN orders o ON os.id = o.session_id AND o.status != 'cancelled'
     WHERE os.restaurant_id = $1 AND os.status = 'active'
+    GROUP BY os.id, os.session_token, os.customer_name, os.customer_phone,
+             os.status, os.started_at, t.table_number, t.location
     ORDER BY os.started_at DESC`,
     [restaurantId]
   );
