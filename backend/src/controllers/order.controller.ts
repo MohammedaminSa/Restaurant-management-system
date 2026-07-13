@@ -139,15 +139,33 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
     );
   }
 
+  // Query order items with menu item details to include in response
+  const orderItemsResult = await query(
+    `SELECT oi.id, oi.order_id, oi.menu_item_id, oi.quantity, oi.unit_price, 
+            oi.selected_variants, oi.special_instructions, oi.status, oi.total_price,
+            mi.name as menu_item_name
+     FROM order_items oi
+     JOIN menu_items mi ON oi.menu_item_id = mi.id
+     WHERE oi.order_id = $1
+     ORDER BY oi.id`,
+    [order.id]
+  );
+
   return ResponseHandler.created(res, {
-    order_id: order.id,
+    id: order.id,
     order_number: order.order_number,
+    restaurant_id: order.restaurant_id,
+    session_id: order.session_id,
     status: order.status,
+    order_type: order.order_type,
     subtotal: order.subtotal,
     tax_amount: order.tax_amount,
     service_charge: order.service_charge,
+    discount_amount: order.discount_amount,
     total_amount: order.total_amount,
+    special_instructions: order.special_instructions,
     created_at: order.created_at,
+    items: orderItemsResult.rows,
   }, 'Order placed successfully');
 });
 
