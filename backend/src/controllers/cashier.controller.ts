@@ -208,14 +208,14 @@ export const recordPayment = asyncHandler(async (req: AuthRequest, res: Response
   }
 
   // Validate payment method
-  const validMethods = ['cash', 'card', 'digital_wallet', 'online'];
+  const validMethods = ['cash', 'card', 'digital_wallet', 'online', 'telebirr', 'chapa', 'bank_transfer'];
   if (!validMethods.includes(payment_method)) {
     throw new AppError('Invalid payment method', 400);
   }
 
-  // Get session
+  // Get session with table_id
   const sessionResult = await query(
-    `SELECT id, restaurant_id, status FROM order_sessions WHERE session_token = $1`,
+    `SELECT id, restaurant_id, status, table_id FROM order_sessions WHERE session_token = $1`,
     [session_token]
   );
 
@@ -266,6 +266,22 @@ export const recordPayment = asyncHandler(async (req: AuthRequest, res: Response
   );
 
   const payment = paymentResult.rows[0];
+
+  // Complete the session after payment
+  await query(
+    `UPDATE order_sessions 
+     SET status = $1, completed_at = CURRENT_TIMESTAMP
+     WHERE id = $2`,
+    ['completed', session.id]
+  );
+
+  // Free the table - Update table status back to 'available' and clear current_session_id
+  await query(
+    `UPDATE tables 
+     SET status = $1, current_session_id = NULL, updated_at = CURRENT_TIMESTAMP
+     WHERE id = $2`,
+    ['available', session.table_id]
+  );
 
   return ResponseHandler.created(res, {
     payment_id: payment.id,
