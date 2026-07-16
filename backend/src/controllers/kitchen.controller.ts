@@ -76,7 +76,7 @@ export const getKitchenOrders = asyncHandler(async (req: AuthRequest, res: Respo
         `SELECT 
           oi.id, oi.quantity, oi.unit_price, oi.selected_variants,
           oi.special_instructions, oi.status, oi.total_price,
-          mi.name as item_name, mi.image_url, mi.preparation_time
+          mi.name as menu_item_name, mi.image_url, mi.preparation_time
         FROM order_items oi
         JOIN menu_items mi ON oi.menu_item_id = mi.id
         WHERE oi.order_id = $1`,
