@@ -8,16 +8,25 @@ import { AppError } from '@middlewares/errorHandler';
 
 // Get all users (Admin only)
 export const getAllUsers = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { page = 1, pageSize = 20 } = req.query;
+  const { page = 1, pageSize = 20, role } = req.query;
   const offset = (Number(page) - 1) * Number(pageSize);
 
-  // Filter by restaurant if not super admin
   let queryText = 'SELECT id, email, role, restaurant_id, name, phone, avatar_url, is_active, created_at FROM users';
   let params: any[] = [];
+  const conditions: string[] = [];
 
   if (req.user?.role !== UserRole.SUPER_ADMIN && req.user?.restaurantId) {
-    queryText += ' WHERE restaurant_id = $1';
+    conditions.push('restaurant_id = $' + (params.length + 1));
     params.push(req.user.restaurantId);
+  }
+
+  if (role) {
+    conditions.push('role = $' + (params.length + 1));
+    params.push(role);
+  }
+
+  if (conditions.length > 0) {
+    queryText += ' WHERE ' + conditions.join(' AND ');
   }
 
   queryText += ' ORDER BY created_at DESC LIMIT $' + (params.length + 1) + ' OFFSET $' + (params.length + 2);
@@ -25,13 +34,22 @@ export const getAllUsers = asyncHandler(async (req: AuthRequest, res: Response) 
 
   const result = await query(queryText, params);
 
-  // Get total count
   let countQuery = 'SELECT COUNT(*) FROM users';
   let countParams: any[] = [];
-  
+  const countConditions: string[] = [];
+
   if (req.user?.role !== UserRole.SUPER_ADMIN && req.user?.restaurantId) {
-    countQuery += ' WHERE restaurant_id = $1';
+    countConditions.push('restaurant_id = $' + (countParams.length + 1));
     countParams.push(req.user.restaurantId);
+  }
+
+  if (role) {
+    countConditions.push('role = $' + (countParams.length + 1));
+    countParams.push(role);
+  }
+
+  if (countConditions.length > 0) {
+    countQuery += ' WHERE ' + countConditions.join(' AND ');
   }
 
   const countResult = await query(countQuery, countParams);
@@ -100,7 +118,7 @@ export const createUser = asyncHandler(async (req: AuthRequest, res: Response) =
 // Update user
 export const updateUser = asyncHandler(async (req: AuthRequest, res: Response) => {
   const { userId } = req.params;
-  const { email, role, name, phone, is_active, avatar_url } = req.body;
+  const { email, role, name, phone, is_active, avatar_url, restaurant_id } = req.body;
 
   // Check if user exists
   const userResult = await query('SELECT * FROM users WHERE id = $1', [userId]);
@@ -115,6 +133,11 @@ export const updateUser = asyncHandler(async (req: AuthRequest, res: Response) =
     throw new AppError('Forbidden: Cannot update this user', 403);
   }
 
+  // Only super admin can reassign restaurant_id
+  if (restaurant_id !== undefined && req.user?.role !== UserRole.SUPER_ADMIN) {
+    throw new AppError('Forbidden: Cannot change restaurant assignment', 403);
+  }
+
   // Update user
   const result = await query(
     `UPDATE users 
@@ -124,10 +147,11 @@ export const updateUser = asyncHandler(async (req: AuthRequest, res: Response) =
          phone = COALESCE($4, phone), 
          is_active = COALESCE($5, is_active),
          avatar_url = COALESCE($6, avatar_url),
+         restaurant_id = COALESCE($7, restaurant_id),
          updated_at = CURRENT_TIMESTAMP
-     WHERE id = $7 
+     WHERE id = $8 
      RETURNING id, email, role, restaurant_id, name, phone, avatar_url, is_active, updated_at`,
-    [email, role, name, phone, is_active, avatar_url, userId]
+    [email, role, name, phone, is_active, avatar_url, restaurant_id, userId]
   );
 
   return ResponseHandler.success(res, result.rows[0], 'User updated successfully');

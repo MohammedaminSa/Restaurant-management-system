@@ -9,7 +9,7 @@ services:
     environment:
       POSTGRES_DB: restaurant_db
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres123
+      POSTGRES_PASSWORD: kishir1234
     ports:
       - "5432:5432"
     volumes:
@@ -69,7 +69,7 @@ services:
   # Frontend (Uncomment after building)
   # frontend:
   #   build:
-  #     context: ./frontend
+  #     context: ./new-frontend
   #     dockerfile: Dockerfile
   #   container_name: restaurant_frontend
   #   restart: unless-stopped
@@ -80,7 +80,7 @@ services:
   #   depends_on:
   #     - backend
   #   volumes:
-  #     - ./frontend:/app
+  #     - ./new-frontend:/app
   #     - /app/node_modules
 
 volumes:

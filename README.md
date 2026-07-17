@@ -254,10 +254,11 @@ restaurant-ordering-system/
 │   ├── package.json
 │   └── tsconfig.json
 │
-├── frontend/
+├── new-frontend/
 │   ├── src/
-│   │   ├── services/        # API client
-│   │   └── types/           # TypeScript types
+│   │   ├── routes/          # TanStack Router routes
+│   │   ├── components/      # UI components
+│   │   └── lib/             # Utilities & API client
 │   ├── package.json
 │   └── vite.config.ts
 │

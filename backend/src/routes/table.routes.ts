@@ -9,6 +9,8 @@ import {
   generateQRCode,
   getTableByQRCode,
   updateTableStatus,
+  assignWaiterToTable,
+  getMyAssignedTables,
 } from '@controllers/table.controller';
 import { authenticate, authorize } from '@middlewares/auth';
 import { validate } from '@middlewares/validator';
@@ -21,6 +23,27 @@ const router = Router();
 router.get('/scan/:qrCode', getTableByQRCode);
 
 // Admin routes
+
+// GET /api/v1/tables/assigned/me - Get tables assigned to current waiter
+router.get(
+  '/assigned/me',
+  authenticate,
+  authorize(UserRole.WAITER),
+  getMyAssignedTables
+);
+
+// POST /api/v1/tables/:id/assign-waiter - Assign table to waiter
+router.post(
+  '/:id/assign-waiter',
+  authenticate,
+  authorize(UserRole.SUPER_ADMIN, UserRole.RESTAURANT_ADMIN),
+  [
+    param('id').isUUID().withMessage('Valid table ID is required'),
+    body('waiter_id').isUUID().withMessage('Valid waiter ID is required'),
+    validate,
+  ],
+  assignWaiterToTable
+);
 
 // GET /api/v1/tables - Get all tables
 router.get(

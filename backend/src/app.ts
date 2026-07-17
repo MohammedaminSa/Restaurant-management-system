@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import compression from 'compression';
+import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import { errorHandler } from '@middlewares/errorHandler';
 
@@ -14,12 +15,7 @@ const app: Application = express();
 app.use(helmet());
 
 // CORS configuration
-const allowedOrigins = [
-  'http://localhost:5173',
-  'http://localhost:8080',
-  'http://localhost:3000',
-  process.env.CORS_ORIGIN,
-].filter(Boolean);
+const allowedOrigins = [process.env.CORS_ORIGIN].filter(Boolean);
 
 const corsOptions = {
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
@@ -42,6 +38,16 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Compression middleware
 app.use(compression());
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: (parseInt(process.env.RATE_LIMIT_WINDOW || '15') * 60 * 1000),
+  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100'),
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Too many requests, please try again later' },
+});
+app.use('/api/', limiter);
 
 // Logging middleware
 if (process.env.NODE_ENV === 'development') {
@@ -71,6 +77,7 @@ import waiterRoutes from './routes/waiter.routes';
 import cashierRoutes from './routes/cashier.routes';
 import inventoryRoutes from './routes/inventory.routes';
 import promotionRoutes from './routes/promotion.routes';
+import restaurantRoutes from './routes/restaurant.routes';
 
 // API routes
 app.use('/api/v1/auth', authRoutes);
@@ -84,11 +91,7 @@ app.use('/api/v1', waiterRoutes);
 app.use('/api/v1', cashierRoutes);
 app.use('/api/v1', inventoryRoutes);
 app.use('/api/v1', promotionRoutes);
-// app.use('/api/v1/customer', customerRoutes);
-// app.use('/api/v1/kitchen', kitchenRoutes);
-// app.use('/api/v1/waiter', waiterRoutes);
-// app.use('/api/v1/cashier', cashierRoutes);
-// app.use('/api/v1/admin', adminRoutes);
+app.use('/api/v1/restaurants', restaurantRoutes);
 
 // 404 handler
 app.use('*', (req: Request, res: Response) => {

@@ -5,6 +5,106 @@ import { ResponseHandler } from '@utils/responseHandler';
 import { asyncHandler } from '@middlewares/errorHandler';
 import { AppError } from '@middlewares/errorHandler';
 
+// Create category (Admin only)
+export const createCategory = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const { restaurant_id, name, description, image_url, display_order, parent_category_id } = req.body;
+
+  if (!restaurant_id || !name) {
+    throw new AppError('Restaurant ID and name are required', 400);
+  }
+
+  if (req.user?.role !== 'super_admin') {
+    if (!req.user?.restaurantId) {
+      throw new AppError('User is not assigned to a restaurant', 403);
+    }
+    if (restaurant_id !== req.user.restaurantId) {
+      throw new AppError('Forbidden: Cannot create categories for other restaurants', 403);
+    }
+  }
+
+  const result = await query(
+    `INSERT INTO categories 
+      (restaurant_id, name, description, image_url, display_order, parent_category_id)
+    VALUES ($1, $2, $3, $4, $5, $6)
+    RETURNING *`,
+    [restaurant_id, name, description || null, image_url || null, display_order || 0, parent_category_id || null]
+  );
+
+  return ResponseHandler.created(res, result.rows[0], 'Category created successfully');
+});
+
+// Update category (Admin only)
+export const updateCategory = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const { id } = req.params;
+  const { name, description, image_url, display_order, is_active, parent_category_id } = req.body;
+
+  const checkResult = await query('SELECT id, restaurant_id FROM categories WHERE id = $1', [id]);
+
+  if (checkResult.rows.length === 0) {
+    throw new AppError('Category not found', 404);
+  }
+
+  const category = checkResult.rows[0];
+
+  if (req.user?.role !== 'super_admin') {
+    if (!req.user?.restaurantId) {
+      throw new AppError('User is not assigned to a restaurant', 403);
+    }
+    if (category.restaurant_id !== req.user.restaurantId) {
+      throw new AppError('Forbidden: Cannot update categories from other restaurants', 403);
+    }
+  }
+
+  const result = await query(
+    `UPDATE categories
+    SET 
+      name = COALESCE($1, name),
+      description = COALESCE($2, description),
+      image_url = COALESCE($3, image_url),
+      display_order = COALESCE($4, display_order),
+      is_active = COALESCE($5, is_active),
+      parent_category_id = COALESCE($6, parent_category_id),
+      updated_at = CURRENT_TIMESTAMP
+    WHERE id = $7
+    RETURNING *`,
+    [name, description, image_url, display_order, is_active, parent_category_id, id]
+  );
+
+  return ResponseHandler.success(res, result.rows[0], 'Category updated successfully');
+});
+
+// Delete category (Admin only)
+export const deleteCategory = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const { id } = req.params;
+
+  const checkResult = await query('SELECT id, restaurant_id FROM categories WHERE id = $1', [id]);
+
+  if (checkResult.rows.length === 0) {
+    throw new AppError('Category not found', 404);
+  }
+
+  const category = checkResult.rows[0];
+
+  if (req.user?.role !== 'super_admin') {
+    if (!req.user?.restaurantId) {
+      throw new AppError('User is not assigned to a restaurant', 403);
+    }
+    if (category.restaurant_id !== req.user.restaurantId) {
+      throw new AppError('Forbidden: Cannot delete categories from other restaurants', 403);
+    }
+  }
+
+  // Check if category has menu items
+  const itemsResult = await query('SELECT COUNT(*) FROM menu_items WHERE category_id = $1', [id]);
+  if (parseInt(itemsResult.rows[0].count) > 0) {
+    throw new AppError('Cannot delete category with existing menu items. Reassign items first.', 400);
+  }
+
+  await query('DELETE FROM categories WHERE id = $1', [id]);
+
+  return ResponseHandler.success(res, null, 'Category deleted successfully');
+});
+
 // Get all categories
 export const getCategories = asyncHandler(async (req: AuthRequest, res: Response) => {
   const { restaurantId } = req.query;

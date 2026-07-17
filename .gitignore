@@ -53,6 +53,7 @@ backend/dist/
 backend/node_modules/
 
 # Frontend specific
-frontend/dist/
-frontend/node_modules/
-frontend/.vite/
+new-frontend/node_modules/
+new-frontend/.output/
+new-frontend/.wrangler/
+new-frontend/.tanstack/

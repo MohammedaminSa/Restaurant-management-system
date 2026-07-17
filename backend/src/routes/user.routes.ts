@@ -61,6 +61,7 @@ router.put(
     body('name').optional().notEmpty().withMessage('Name cannot be empty'),
     body('phone').optional().isMobilePhone('any').withMessage('Valid phone number required'),
     body('is_active').optional().isBoolean().withMessage('is_active must be boolean'),
+    body('restaurant_id').optional().isUUID().withMessage('Valid restaurant ID required'),
     validate,
   ],
   authorize(UserRole.SUPER_ADMIN, UserRole.RESTAURANT_ADMIN),

@@ -48,7 +48,7 @@ async function seed() {
     );
 
     if (superAdminResult.rows.length > 0) {
-      console.log('✓ Created super admin: admin@restaurant.com (password: admin123)');
+      console.log('✓ Created super admin: admin@restaurant.com');
     } else {
       console.log('✓ Super admin already exists');
     }
@@ -64,7 +64,7 @@ async function seed() {
     );
 
     if (restaurantAdminResult.rows.length > 0) {
-      console.log('✓ Created restaurant admin: restaurant@demo.com (password: admin123)');
+      console.log('✓ Created restaurant admin: restaurant@demo.com');
     } else {
       console.log('✓ Restaurant admin already exists');
     }
@@ -80,7 +80,7 @@ async function seed() {
     );
 
     if (kitchenResult.rows.length > 0) {
-      console.log('✓ Created kitchen staff: kitchen@demo.com (password: kitchen123)');
+      console.log('✓ Created kitchen staff: kitchen@demo.com');
     } else {
       console.log('✓ Kitchen staff already exists');
     }
@@ -96,7 +96,7 @@ async function seed() {
     );
 
     if (waiterResult.rows.length > 0) {
-      console.log('✓ Created waiter: waiter@demo.com (password: waiter123)');
+      console.log('✓ Created waiter: waiter@demo.com');
     } else {
       console.log('✓ Waiter already exists');
     }
@@ -112,18 +112,19 @@ async function seed() {
     );
 
     if (cashierResult.rows.length > 0) {
-      console.log('✓ Created cashier: cashier@demo.com (password: cashier123)');
+      console.log('✓ Created cashier: cashier@demo.com');
     } else {
       console.log('✓ Cashier already exists');
     }
 
     console.log('\n✅ Seed completed successfully!\n');
-    console.log('Login credentials:');
-    console.log('Super Admin: admin@restaurant.com / admin123');
-    console.log('Restaurant Admin: restaurant@demo.com / admin123');
-    console.log('Kitchen Staff: kitchen@demo.com / kitchen123');
-    console.log('Waiter: waiter@demo.com / waiter123');
-    console.log('Cashier: cashier@demo.com / cashier123');
+    console.log('Seeded accounts:');
+    console.log('Super Admin: admin@restaurant.com');
+    console.log('Restaurant Admin: restaurant@demo.com');
+    console.log('Kitchen Staff: kitchen@demo.com');
+    console.log('Waiter: waiter@demo.com');
+    console.log('Cashier: cashier@demo.com');
+    console.log('(Default passwords are set — change in production)');
 
   } catch (error) {
     console.error('❌ Seed failed:', error);

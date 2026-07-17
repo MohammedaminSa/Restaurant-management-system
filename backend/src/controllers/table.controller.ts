@@ -267,7 +267,7 @@ export const getTableByQRCode = asyncHandler(async (req: AuthRequest, res: Respo
 
   const result = await query(
     `SELECT 
-      t.id, t.restaurant_id, t.table_number, t.capacity, t.location, t.status,
+      t.id, t.restaurant_id, t.table_number, t.capacity, t.location, t.status, t.current_session_id,
       r.name as restaurant_name, r.logo_url as restaurant_logo,
       r.tax_rate, r.service_charge_rate
     FROM tables t
@@ -287,7 +287,25 @@ export const getTableByQRCode = asyncHandler(async (req: AuthRequest, res: Respo
     throw new AppError('This table is currently under maintenance', 400);
   }
 
-  return ResponseHandler.success(res, table);
+  // If table is occupied, get the active session details
+  let activeSession = null;
+  if (table.current_session_id) {
+    const sessionResult = await query(
+      `SELECT session_token, customer_name, started_at 
+       FROM order_sessions 
+       WHERE id = $1 AND status = 'active'`,
+      [table.current_session_id]
+    );
+    
+    if (sessionResult.rows.length > 0) {
+      activeSession = sessionResult.rows[0];
+    }
+  }
+
+  return ResponseHandler.success(res, {
+    ...table,
+    active_session: activeSession,
+  });
 });
 
 // Update table status
@@ -335,4 +353,87 @@ export const updateTableStatus = asyncHandler(async (req: AuthRequest, res: Resp
   );
 
   return ResponseHandler.success(res, result.rows[0], 'Table status updated successfully');
+});
+
+// Assign table to a waiter
+export const assignWaiterToTable = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const { id } = req.params;
+  const { waiter_id } = req.body;
+
+  if (!waiter_id) {
+    throw new AppError('Waiter ID is required', 400);
+  }
+
+  // Verify table exists with restaurant info
+  const tableCheck = await query(
+    'SELECT id, restaurant_id, assigned_waiter_id FROM tables WHERE id = $1',
+    [id]
+  );
+
+  if (tableCheck.rows.length === 0) {
+    throw new AppError('Table not found', 404);
+  }
+
+  const table = tableCheck.rows[0];
+
+  // Restaurant access control
+  if (req.user?.role !== 'super_admin') {
+    if (!req.user?.restaurantId) {
+      throw new AppError('User is not assigned to a restaurant', 403);
+    }
+    if (table.restaurant_id !== req.user.restaurantId) {
+      throw new AppError('Forbidden: Cannot assign tables from other restaurants', 403);
+    }
+  }
+
+  // Verify waiter exists and belongs to same restaurant
+  const waiterCheck = await query(
+    'SELECT id, role, restaurant_id FROM users WHERE id = $1',
+    [waiter_id]
+  );
+
+  if (waiterCheck.rows.length === 0) {
+    throw new AppError('User not found', 404);
+  }
+
+  const waiter = waiterCheck.rows[0];
+
+  if (waiter.role !== 'waiter') {
+    throw new AppError('User must have waiter role', 400);
+  }
+
+  if (req.user?.role !== 'super_admin' && waiter.restaurant_id !== table.restaurant_id) {
+    throw new AppError('Waiter does not belong to this restaurant', 400);
+  }
+
+  const result = await query(
+    `UPDATE tables
+    SET assigned_waiter_id = $1, updated_at = CURRENT_TIMESTAMP
+    WHERE id = $2
+    RETURNING id, table_number, assigned_waiter_id`,
+    [waiter_id, id]
+  );
+
+  return ResponseHandler.success(res, result.rows[0], 'Table assigned to waiter successfully');
+});
+
+// Get tables assigned to current waiter
+export const getMyAssignedTables = asyncHandler(async (req: AuthRequest, res: Response) => {
+  if (!req.user?.id) {
+    throw new AppError('Not authenticated', 401);
+  }
+
+  const result = await query(
+    `SELECT 
+      t.id, t.table_number, t.capacity, t.location, t.status,
+      t.current_session_id, t.created_at, t.updated_at,
+      os.session_token, os.customer_name, os.started_at
+    FROM tables t
+    LEFT JOIN order_sessions os ON t.current_session_id = os.id
+    WHERE t.assigned_waiter_id = $1
+    ORDER BY t.table_number ASC`,
+    [req.user.id]
+  );
+
+  return ResponseHandler.success(res, result.rows);
 });

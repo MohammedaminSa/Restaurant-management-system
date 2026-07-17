@@ -347,7 +347,18 @@ export const getTodayTransactions = asyncHandler(async (req: AuthRequest, res: R
   const result = await query(
     `SELECT p.id, p.amount, p.payment_method, p.status, p.created_at, p.completed_at,
             os.session_token, os.customer_name,
-            t.table_number
+            t.table_number,
+            COALESCE(
+              (SELECT STRING_AGG(DISTINCT oi2.item_summary, ', ')
+               FROM (
+                 SELECT CONCAT(oi.quantity, 'x ', mi.name) AS item_summary, oi.order_id
+                 FROM order_items oi
+                 JOIN menu_items mi ON oi.menu_item_id = mi.id
+                 JOIN orders o ON oi.order_id = o.id
+                 WHERE o.session_id = os.id
+               ) oi2
+              ), ''
+            ) as items
      FROM payments p
      JOIN order_sessions os ON p.session_id = os.id
      JOIN tables t ON os.table_id = t.id

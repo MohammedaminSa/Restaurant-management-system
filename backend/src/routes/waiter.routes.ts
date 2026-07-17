@@ -16,7 +16,7 @@ router.use(authenticate);
 // Waiter can view tables and orders
 router.get(
   '/waiter/tables',
-  authorize(UserRole.SUPER_ADMIN, UserRole.RESTAURANT_ADMIN, UserRole.WAITER),
+  authorize(UserRole.SUPER_ADMIN, UserRole.RESTAURANT_ADMIN, UserRole.WAITER, UserRole.CASHIER),
   getWaiterTables
 );
 

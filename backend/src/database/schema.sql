@@ -272,3 +272,7 @@ CREATE TRIGGER update_promotions_updated_at BEFORE UPDATE ON promotions FOR EACH
 -- Add foreign key constraint for current_session_id
 ALTER TABLE tables ADD CONSTRAINT fk_tables_current_session 
     FOREIGN KEY (current_session_id) REFERENCES order_sessions(id) ON DELETE SET NULL;
+
+-- Add assigned_waiter_id column to tables
+ALTER TABLE tables ADD COLUMN IF NOT EXISTS assigned_waiter_id UUID REFERENCES users(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_tables_assigned_waiter ON tables(assigned_waiter_id);

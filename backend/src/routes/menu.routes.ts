@@ -8,6 +8,9 @@ import {
   updateMenuItem,
   deleteMenuItem,
   toggleAvailability,
+  createCategory,
+  updateCategory,
+  deleteCategory,
 } from '@controllers/menu.controller';
 import { authenticate, authorize } from '@middlewares/auth';
 import { validate } from '@middlewares/validator';
@@ -19,6 +22,41 @@ const router = Router();
 
 // GET /api/v1/menu/categories - Get all categories
 router.get('/categories', getCategories);
+
+// POST /api/v1/menu/categories - Create category
+router.post(
+  '/categories',
+  authenticate,
+  authorize(UserRole.SUPER_ADMIN, UserRole.RESTAURANT_ADMIN),
+  [
+    body('name').notEmpty().withMessage('Name is required'),
+    body('restaurant_id').isUUID().withMessage('Valid restaurant ID is required'),
+    validate,
+  ],
+  createCategory
+);
+
+// PUT /api/v1/menu/categories/:id - Update category
+router.put(
+  '/categories/:id',
+  authenticate,
+  authorize(UserRole.SUPER_ADMIN, UserRole.RESTAURANT_ADMIN),
+  [
+    param('id').isUUID().withMessage('Valid category ID is required'),
+    body('name').optional().notEmpty().withMessage('Name cannot be empty'),
+    validate,
+  ],
+  updateCategory
+);
+
+// DELETE /api/v1/menu/categories/:id - Delete category
+router.delete(
+  '/categories/:id',
+  authenticate,
+  authorize(UserRole.SUPER_ADMIN, UserRole.RESTAURANT_ADMIN),
+  [param('id').isUUID().withMessage('Valid category ID is required'), validate],
+  deleteCategory
+);
 
 // GET /api/v1/menu/items - Get all menu items with filtering
 router.get('/items', getMenuItems);
@@ -73,7 +111,7 @@ router.delete(
 router.patch(
   '/items/:id/toggle',
   authenticate,
-  authorize(UserRole.SUPER_ADMIN, UserRole.RESTAURANT_ADMIN),
+  authorize(UserRole.SUPER_ADMIN, UserRole.RESTAURANT_ADMIN, UserRole.KITCHEN_STAFF),
   [param('id').isUUID().withMessage('Valid item ID is required'), validate],
   toggleAvailability
 );
