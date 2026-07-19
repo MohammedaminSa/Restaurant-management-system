@@ -56,20 +56,9 @@ if (process.env.NODE_ENV === 'development') {
   app.use(morgan('combined'));
 }
 
-// Root route — redirect to frontend or show API info
+// Root route
 app.get('/', (req: Request, res: Response) => {
-  const frontendUrl = process.env.FRONTEND_URL;
-  if (frontendUrl) {
-    res.redirect(301, frontendUrl);
-  } else {
-    res.status(200).json({
-      success: true,
-      message: 'Restaurant Management System API',
-      version: '1.0.0',
-      docs: '/api/v1',
-      health: '/health',
-    });
-  }
+  res.json({ message: 'Server is running successfully' });
 });
 
 // Health check endpoint
