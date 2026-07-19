@@ -45,6 +45,7 @@ const limiter = rateLimit({
   max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100'),
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => req.originalUrl.startsWith('/api/seed'),
   message: { success: false, error: 'Too many requests, please try again later' },
 });
 app.use('/api/', limiter);
