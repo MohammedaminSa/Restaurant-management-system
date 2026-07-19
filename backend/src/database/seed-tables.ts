@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const seedTables = async () => {
+export const seedTables = async () => {
   const client = await pool.connect();
 
   try {
@@ -83,13 +83,15 @@ const seedTables = async () => {
   }
 };
 
-// Run the seed
-seedTables()
-  .then(() => {
-    console.log('\n🎉 Done!');
-    process.exit(0);
-  })
-  .catch((error) => {
-    console.error('Failed to seed table data:', error);
-    process.exit(1);
-  });
+// Run the seed directly
+if (require.main === module) {
+  seedTables()
+    .then(() => {
+      console.log('\n🎉 Done!');
+      process.exit(0);
+    })
+    .catch((error) => {
+      console.error('Failed to seed table data:', error);
+      process.exit(1);
+    });
+}

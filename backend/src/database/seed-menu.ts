@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const seedMenuData = async () => {
+export const seedMenuData = async () => {
   const client = await pool.connect();
 
   try {
@@ -421,13 +421,15 @@ const seedMenuData = async () => {
   }
 };
 
-// Run the seed
-seedMenuData()
-  .then(() => {
-    console.log('\n🎉 Done!');
-    process.exit(0);
-  })
-  .catch((error) => {
-    console.error('Failed to seed menu data:', error);
-    process.exit(1);
-  });
+// Run the seed directly
+if (require.main === module) {
+  seedMenuData()
+    .then(() => {
+      console.log('\n🎉 Done!');
+      process.exit(0);
+    })
+    .catch((error) => {
+      console.error('Failed to seed menu data:', error);
+      process.exit(1);
+    });
+}

@@ -61,15 +61,43 @@ app.get('/', (req: Request, res: Response) => {
   res.json({ message: 'Server is running successfully' });
 });
 
-// One-time seed endpoint (call GET /api/seed?key=your-secret-key)
-app.get('/api/seed', async (req: Request, res: Response) => {
+// Seed endpoints (call with ?key=your-seed-secret)
+const checkSeedKey = (req: Request, res: Response) => {
   if (req.query.key !== process.env.SEED_SECRET) {
-    return res.status(403).json({ success: false, error: 'Invalid seed key' });
+    res.status(403).json({ success: false, error: 'Invalid seed key' });
+    return false;
   }
+  return true;
+};
+
+app.get('/api/seed', async (req: Request, res: Response) => {
+  if (!checkSeedKey(req, res)) return;
   try {
     const { runSeed } = await import('./database/seed.js');
     await runSeed();
     res.json({ success: true, message: 'Seed completed' });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/seed/menu', async (req: Request, res: Response) => {
+  if (!checkSeedKey(req, res)) return;
+  try {
+    const { seedMenuData } = await import('./database/seed-menu.js');
+    await seedMenuData();
+    res.json({ success: true, message: 'Menu seed completed' });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/seed/tables', async (req: Request, res: Response) => {
+  if (!checkSeedKey(req, res)) return;
+  try {
+    const { seedTables } = await import('./database/seed-tables.js');
+    await seedTables();
+    res.json({ success: true, message: 'Tables seed completed' });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }
