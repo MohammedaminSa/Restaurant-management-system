@@ -61,6 +61,20 @@ app.get('/', (req: Request, res: Response) => {
   res.json({ message: 'Server is running successfully' });
 });
 
+// One-time seed endpoint (call GET /api/seed?key=your-secret-key)
+app.get('/api/seed', async (req: Request, res: Response) => {
+  if (req.query.key !== process.env.SEED_SECRET) {
+    return res.status(403).json({ success: false, error: 'Invalid seed key' });
+  }
+  try {
+    const { runSeed } = await import('./database/seed.js');
+    await runSeed();
+    res.json({ success: true, message: 'Seed completed' });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Health check endpoint
 app.get('/health', (req: Request, res: Response) => {
   res.status(200).json({

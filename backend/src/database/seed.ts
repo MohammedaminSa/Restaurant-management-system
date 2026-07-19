@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-async function seed() {
+export async function runSeed() {
   try {
     console.log('🌱 Starting database seed...');
 
@@ -134,4 +134,6 @@ async function seed() {
   }
 }
 
-seed();
+if (require.main === module) {
+  runSeed();
+}
