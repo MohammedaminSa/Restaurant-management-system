@@ -45,7 +45,11 @@ const limiter = rateLimit({
   max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100'),
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => req.originalUrl.startsWith('/api/seed'),
+  skip: (req) =>
+    req.originalUrl.startsWith('/api/seed') ||
+    req.originalUrl.startsWith('/api/v1/menu') ||
+    req.originalUrl.startsWith('/api/v1/sessions') ||
+    req.originalUrl.startsWith('/api/v1/tables/scan'),
   message: { success: false, error: 'Too many requests, please try again later' },
 });
 app.use('/api/', limiter);
