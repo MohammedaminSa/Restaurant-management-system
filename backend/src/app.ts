@@ -49,7 +49,8 @@ const limiter = rateLimit({
     req.originalUrl.startsWith('/api/seed') ||
     req.originalUrl.startsWith('/api/v1/menu') ||
     req.originalUrl.startsWith('/api/v1/sessions') ||
-    req.originalUrl.startsWith('/api/v1/tables/scan'),
+    req.originalUrl.startsWith('/api/v1/tables/scan') ||
+    req.originalUrl.startsWith('/api/v1/restaurants/public'),
   message: { success: false, error: 'Too many requests, please try again later' },
 });
 app.use('/api/', limiter);

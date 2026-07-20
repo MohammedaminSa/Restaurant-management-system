@@ -7,12 +7,15 @@ import {
   updateRestaurant,
   deleteRestaurant,
   toggleRestaurantStatus,
+  getRestaurantPublic,
 } from '@controllers/restaurant.controller';
 import { authenticate, authorize } from '@middlewares/auth';
 import { validate } from '@middlewares/validator';
 import { UserRole } from '@/interfaces/index';
 
 const router = Router();
+
+router.get('/public/info', getRestaurantPublic);
 
 router.get(
   '/',

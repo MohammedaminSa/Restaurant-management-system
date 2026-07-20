@@ -1,9 +1,21 @@
 import { Response } from 'express';
+import { Request } from 'express';
 import { AuthRequest } from '@/interfaces/index';
 import { query } from '@config/database';
 import { ResponseHandler } from '@utils/responseHandler';
 import { asyncHandler } from '@middlewares/errorHandler';
 import { AppError } from '@middlewares/errorHandler';
+
+export const getRestaurantPublic = asyncHandler(async (req: Request, res: Response) => {
+  const result = await query(
+    `SELECT id, name, slug, description, logo_url, currency, tax_rate, service_charge_rate
+     FROM restaurants WHERE is_active = true ORDER BY created_at ASC LIMIT 1`
+  );
+  if (result.rows.length === 0) {
+    return res.status(200).json({ success: true, data: null });
+  }
+  return ResponseHandler.success(res, result.rows[0]);
+});
 
 export const getRestaurants = asyncHandler(async (req: AuthRequest, res: Response) => {
   const { search, status } = req.query;
@@ -61,7 +73,7 @@ export const getRestaurantById = asyncHandler(async (req: AuthRequest, res: Resp
 });
 
 export const createRestaurant = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { name, description, address, phone, email, timezone, currency, tax_rate, service_charge_rate } = req.body;
+  const { name, description, address, phone, email, timezone, currency, tax_rate, service_charge_rate, logo_url } = req.body;
 
   if (!name) {
     throw new AppError('Restaurant name is required', 400);
@@ -71,8 +83,8 @@ export const createRestaurant = asyncHandler(async (req: AuthRequest, res: Respo
 
   const result = await query(
     `INSERT INTO restaurants 
-      (name, slug, description, address, phone, email, timezone, currency, tax_rate, service_charge_rate)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      (name, slug, description, address, phone, email, timezone, currency, tax_rate, service_charge_rate, logo_url)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
     RETURNING *`,
     [
       name,
@@ -85,6 +97,7 @@ export const createRestaurant = asyncHandler(async (req: AuthRequest, res: Respo
       currency || 'USD',
       tax_rate || 0,
       service_charge_rate || 0,
+      logo_url || null,
     ]
   );
 
@@ -93,7 +106,7 @@ export const createRestaurant = asyncHandler(async (req: AuthRequest, res: Respo
 
 export const updateRestaurant = asyncHandler(async (req: AuthRequest, res: Response) => {
   const { id } = req.params;
-  const { name, description, address, phone, email, timezone, currency, tax_rate, service_charge_rate, is_active } = req.body;
+  const { name, description, address, phone, email, timezone, currency, tax_rate, service_charge_rate, is_active, logo_url } = req.body;
 
   const checkResult = await query('SELECT id FROM restaurants WHERE id = $1', [id]);
   if (checkResult.rows.length === 0) {
@@ -112,11 +125,12 @@ export const updateRestaurant = asyncHandler(async (req: AuthRequest, res: Respo
       currency = COALESCE($7, currency),
       tax_rate = COALESCE($8, tax_rate),
       service_charge_rate = COALESCE($9, service_charge_rate),
-      is_active = COALESCE($10, is_active),
+      logo_url = COALESCE($10, logo_url),
+      is_active = COALESCE($11, is_active),
       updated_at = CURRENT_TIMESTAMP
-    WHERE id = $11
+    WHERE id = $12
     RETURNING *`,
-    [name, description, address, phone, email, timezone, currency, tax_rate, service_charge_rate, is_active, id]
+    [name, description, address, phone, email, timezone, currency, tax_rate, service_charge_rate, logo_url || null, is_active, id]
   );
 
   return ResponseHandler.success(res, result.rows[0], 'Restaurant updated successfully');
