@@ -10,7 +10,7 @@ CREATE TYPE order_status AS ENUM ('pending', 'confirmed', 'preparing', 'ready', 
 CREATE TYPE order_type AS ENUM ('dine_in', 'takeaway', 'delivery');
 CREATE TYPE order_item_status AS ENUM ('pending', 'preparing', 'ready', 'served', 'cancelled');
 CREATE TYPE session_status AS ENUM ('active', 'completed', 'cancelled');
-CREATE TYPE payment_method AS ENUM ('cash', 'card', 'digital_wallet', 'online', 'telebirr', 'chapa', 'bank_transfer');
+CREATE TYPE payment_method AS ENUM ('cash', 'card', 'digital_wallet', 'online', 'telebirr', 'bank_transfer');
 CREATE TYPE payment_status AS ENUM ('pending', 'completed', 'failed', 'refunded');
 CREATE TYPE discount_type AS ENUM ('percentage', 'fixed_amount');
 CREATE TYPE variant_type AS ENUM ('single_select', 'multi_select');

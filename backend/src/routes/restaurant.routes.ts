@@ -9,6 +9,7 @@ import {
   toggleRestaurantStatus,
   getRestaurantPublic,
   getMyRestaurant,
+  updateMyRestaurant,
 } from '@controllers/restaurant.controller';
 import { authenticate, authorize } from '@middlewares/auth';
 import { validate } from '@middlewares/validator';
@@ -29,6 +30,12 @@ router.get(
   '/my',
   authenticate,
   getMyRestaurant
+);
+
+router.patch(
+  '/my',
+  authenticate,
+  updateMyRestaurant
 );
 
 router.get(

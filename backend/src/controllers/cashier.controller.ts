@@ -211,7 +211,7 @@ export const recordPayment = asyncHandler(async (req: AuthRequest, res: Response
   }
 
   // Validate payment method
-  const validMethods = ['cash', 'card', 'digital_wallet', 'online', 'telebirr', 'chapa', 'bank_transfer'];
+  const validMethods = ['cash', 'card', 'digital_wallet', 'online', 'telebirr', 'bank_transfer'];
   if (!validMethods.includes(payment_method)) {
     throw new AppError('Invalid payment method', 400);
   }

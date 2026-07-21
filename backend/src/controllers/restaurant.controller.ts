@@ -157,6 +157,29 @@ export const getMyRestaurant = asyncHandler(async (req: AuthRequest, res: Respon
   return ResponseHandler.success(res, result.rows[0]);
 });
 
+// Update own restaurant settings (restaurant_admin)
+export const updateMyRestaurant = asyncHandler(async (req: AuthRequest, res: Response) => {
+  if (!req.user?.restaurantId) {
+    throw new AppError('You are not assigned to a restaurant', 403);
+  }
+
+  const { payment_details } = req.body;
+
+  const result = await query(
+    `UPDATE restaurants
+     SET payment_details = $1::jsonb, updated_at = CURRENT_TIMESTAMP
+     WHERE id = $2
+     RETURNING id, name, slug, currency, timezone, payment_details`,
+    [payment_details || {}, req.user.restaurantId]
+  );
+
+  if (result.rows.length === 0) {
+    throw new AppError('Restaurant not found', 404);
+  }
+
+  return ResponseHandler.success(res, result.rows[0], 'Settings updated successfully');
+});
+
 export const deleteRestaurant = asyncHandler(async (req: AuthRequest, res: Response) => {
   const { id } = req.params;
 
