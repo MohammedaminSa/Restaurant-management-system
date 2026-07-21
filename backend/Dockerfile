@@ -1,21 +1,23 @@
-FROM node:18-alpine
+FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
 COPY package*.json ./
+RUN npm ci
 
-# Install dependencies
-RUN npm ci --only=production
-
-# Copy source code
 COPY . .
-
-# Build TypeScript
 RUN npm run build
 
-# Expose port
+FROM node:18-alpine AS runner
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci --only=production && npm cache clean --force
+
+COPY --from=builder /app/dist ./dist
+COPY register-aliases.js ./
+
 EXPOSE 5000
 
-# Start application
-CMD ["npm", "start"]
+CMD ["node", "-r", "./register-aliases.js", "dist/server.js"]
