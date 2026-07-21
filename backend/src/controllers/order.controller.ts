@@ -7,7 +7,7 @@ import { AppError } from '@middlewares/errorHandler';
 
 // Submit customer order
 export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { session_token, items, special_instructions, payment_method, transaction_id } = req.body;
+  const { session_token, items, special_instructions, payment_method, transaction_id, payment_account } = req.body;
 
   if (!session_token || !items || items.length === 0) {
     throw new AppError('Session token and items are required', 400);
@@ -94,7 +94,7 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
 
   // Determine payment status
   const isPaid = payment_method && payment_method !== 'cash';
-  const paymentStatus = isPaid ? 'paid' : (payment_method === 'cash' ? 'unpaid' : 'unpaid');
+  const paymentStatus = isPaid ? 'unpaid' : (payment_method === 'cash' ? 'unpaid' : 'unpaid');
 
   // Generate unique order number (per restaurant)
   const orderNumberResult = await query(
@@ -110,8 +110,8 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
     `INSERT INTO orders 
       (restaurant_id, session_id, order_number, status, order_type, 
        subtotal, tax_amount, service_charge, discount_amount, total_amount, 
-       special_instructions, payment_method, payment_status, created_at)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, CURRENT_TIMESTAMP)
+       special_instructions, payment_method, payment_status, transaction_id, payment_account, created_at)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, CURRENT_TIMESTAMP)
     RETURNING *`,
     [
       session.restaurant_id,
@@ -127,18 +127,20 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
       special_instructions || null,
       payment_method || null,
       paymentStatus,
+      isPaid ? (transaction_id || null) : null,
+      isPaid && payment_account ? JSON.stringify(payment_account) : null,
     ]
   );
 
   const order = orderResult.rows[0];
 
-  // If non-cash payment, create a payment record
+  // For non-cash, create payment record with 'pending' status (awaiting cashier approval)
   if (isPaid) {
     await query(
       `INSERT INTO payments 
-        (restaurant_id, session_id, amount, payment_method, status, transaction_id, created_at, completed_at)
-      VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
-      [session.restaurant_id, session.id, totalAmount, payment_method, 'completed', transaction_id || null]
+        (restaurant_id, session_id, amount, payment_method, status, transaction_id, created_at)
+      VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)`,
+      [session.restaurant_id, session.id, totalAmount, payment_method, 'pending', transaction_id || null]
     );
   }
 
@@ -188,6 +190,8 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
     total_amount: order.total_amount,
     payment_method: order.payment_method,
     payment_status: order.payment_status,
+    transaction_id: order.transaction_id,
+    payment_account: order.payment_account,
     special_instructions: order.special_instructions,
     created_at: order.created_at,
     items: orderItemsResult.rows,

@@ -5,6 +5,8 @@ const migrations = [
   `ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_method payment_method`,
   `ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_status VARCHAR(20) DEFAULT 'unpaid'`,
   `ALTER TYPE payment_method ADD VALUE IF NOT EXISTS 'bank_transfer'`,
+  `ALTER TABLE orders ADD COLUMN IF NOT EXISTS transaction_id VARCHAR(255)`,
+  `ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_account JSONB`,
 ];
 
 export async function runMigrations() {

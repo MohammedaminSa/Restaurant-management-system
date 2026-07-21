@@ -4,6 +4,7 @@ import {
   getSessionBill,
   getSessionOrders,
   recordPayment,
+  approvePayment,
   getPayment,
   getTodayTransactions
 } from '@/controllers/cashier.controller';
@@ -38,6 +39,12 @@ router.post(
   '/cashier/payments',
   authorize(UserRole.SUPER_ADMIN, UserRole.RESTAURANT_ADMIN, UserRole.CASHIER),
   recordPayment
+);
+
+router.post(
+  '/cashier/payments/approve',
+  authorize(UserRole.SUPER_ADMIN, UserRole.RESTAURANT_ADMIN, UserRole.CASHIER),
+  approvePayment
 );
 
 router.get(
