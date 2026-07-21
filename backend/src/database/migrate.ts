@@ -4,6 +4,7 @@ const migrations = [
   `ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS payment_details JSONB DEFAULT '{}'::jsonb`,
   `ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_method payment_method`,
   `ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_status VARCHAR(20) DEFAULT 'unpaid'`,
+  `ALTER TYPE payment_method ADD VALUE IF NOT EXISTS 'bank_transfer'`,
 ];
 
 export async function runMigrations() {

@@ -11,6 +11,9 @@ dotenv.config();
 
 const app: Application = express();
 
+// Trust proxy (Render, Cloudflare, etc.)
+app.set('trust proxy', 1);
+
 // Security middleware
 app.use(helmet());
 
