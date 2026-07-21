@@ -4,6 +4,15 @@ import { query } from '@config/database';
 import { ResponseHandler } from '@utils/responseHandler';
 import { asyncHandler } from '@middlewares/errorHandler';
 import { AppError } from '@middlewares/errorHandler';
+import { Request } from 'express';
+
+const requireActiveRestaurant = async (user?: any): Promise<void> => {
+  if (user) return;
+  const result = await query('SELECT id FROM restaurants WHERE is_active = true LIMIT 1');
+  if (result.rows.length === 0) {
+    throw new AppError('Restaurant is currently inactive', 503);
+  }
+};
 
 // Create category (Admin only)
 export const createCategory = asyncHandler(async (req: AuthRequest, res: Response) => {
@@ -107,6 +116,7 @@ export const deleteCategory = asyncHandler(async (req: AuthRequest, res: Respons
 
 // Get all categories
 export const getCategories = asyncHandler(async (req: AuthRequest, res: Response) => {
+  await requireActiveRestaurant(req.user);
   const { restaurantId } = req.query;
 
   let queryText = `
@@ -132,6 +142,7 @@ export const getCategories = asyncHandler(async (req: AuthRequest, res: Response
 
 // Get all menu items with optional filtering
 export const getMenuItems = asyncHandler(async (req: AuthRequest, res: Response) => {
+  await requireActiveRestaurant(req.user);
   const { 
     categoryId, 
     search, 
@@ -209,6 +220,7 @@ export const getMenuItems = asyncHandler(async (req: AuthRequest, res: Response)
 
 // Get single menu item with variants
 export const getMenuItemById = asyncHandler(async (req: AuthRequest, res: Response) => {
+  await requireActiveRestaurant(req.user);
   const { id } = req.params;
 
   // Get menu item

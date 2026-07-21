@@ -13,7 +13,10 @@ export const login = asyncHandler(async (req: AuthRequest, res: Response) => {
 
   // Find user by email
   const result = await query(
-    'SELECT * FROM users WHERE email = $1 AND is_active = true',
+    `SELECT u.*, r.is_active as restaurant_active 
+     FROM users u 
+     LEFT JOIN restaurants r ON u.restaurant_id = r.id 
+     WHERE u.email = $1 AND u.is_active = true`,
     [email]
   );
 
@@ -21,6 +24,11 @@ export const login = asyncHandler(async (req: AuthRequest, res: Response) => {
 
   if (!user) {
     throw new AppError('Invalid email or password', 401);
+  }
+
+  // Check if user's restaurant is active
+  if (user.restaurant_id && !user.restaurant_active) {
+    throw new AppError('Your restaurant has been deactivated. Please contact your super admin.', 403);
   }
 
   // Verify password

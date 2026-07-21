@@ -37,6 +37,12 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
     throw new AppError('Table already has an active session', 400);
   }
 
+  // Check if restaurant is active
+  const restaurantCheck = await query('SELECT is_active FROM restaurants WHERE id = $1', [table.restaurant_id]);
+  if (restaurantCheck.rows.length === 0 || !restaurantCheck.rows[0].is_active) {
+    throw new AppError('Restaurant is currently inactive. Cannot start a new session.', 503);
+  }
+
   // Generate unique session token
   const sessionToken = uuidv4();
 
