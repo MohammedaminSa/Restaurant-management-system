@@ -108,6 +108,32 @@ export const getCurrentUser = asyncHandler(async (req: AuthRequest, res: Respons
   return ResponseHandler.success(res, user);
 });
 
+// Update own profile
+export const updateMyProfile = asyncHandler(async (req: AuthRequest, res: Response) => {
+  if (!req.user) {
+    throw new AppError('Unauthorized', 401);
+  }
+
+  const { name, email, phone } = req.body;
+
+  const result = await query(
+    `UPDATE users 
+     SET name = COALESCE($1, name), 
+         email = COALESCE($2, email), 
+         phone = COALESCE($3, phone),
+         updated_at = CURRENT_TIMESTAMP
+     WHERE id = $4 
+     RETURNING id, email, role, restaurant_id, name, phone, avatar_url, is_active, updated_at`,
+    [name, email, phone, req.user.id]
+  );
+
+  if (result.rows.length === 0) {
+    throw new AppError('User not found', 404);
+  }
+
+  return ResponseHandler.success(res, result.rows[0], 'Profile updated successfully');
+});
+
 // Logout (client-side token removal, but we can blacklist token here if needed)
 export const logout = asyncHandler(async (req: AuthRequest, res: Response) => {
   // In a more advanced setup, you would blacklist the token in Redis
