@@ -109,6 +109,26 @@ app.get('/api/seed/tables', async (req: Request, res: Response) => {
   }
 });
 
+// Migration endpoint - adds missing columns to production DB
+app.get('/api/migrate', async (req: Request, res: Response) => {
+  if (!checkSeedKey(req, res)) return;
+  const { query } = await import('./config/database.js');
+  const results: string[] = [];
+  try {
+    await query(`ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS payment_details JSONB DEFAULT '{}'::jsonb`);
+    results.push('✅ restaurants.payment_details added');
+  } catch (e: any) { results.push(`❌ restaurants.payment_details: ${e.message}`); }
+  try {
+    await query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_method payment_method`);
+    results.push('✅ orders.payment_method added');
+  } catch (e: any) { results.push(`❌ orders.payment_method: ${e.message}`); }
+  try {
+    await query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_status VARCHAR(20) DEFAULT 'unpaid'`);
+    results.push('✅ orders.payment_status added');
+  } catch (e: any) { results.push(`❌ orders.payment_status: ${e.message}`); }
+  res.json({ success: true, results });
+});
+
 // Health check endpoint
 app.get('/health', (req: Request, res: Response) => {
   res.status(200).json({
