@@ -7,7 +7,7 @@ import { AppError } from '@middlewares/errorHandler';
 
 // Submit customer order
 export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { session_token, items, special_instructions, payment_method } = req.body;
+  const { session_token, items, special_instructions, payment_method, transaction_id } = req.body;
 
   if (!session_token || !items || items.length === 0) {
     throw new AppError('Session token and items are required', 400);
@@ -136,9 +136,9 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
   if (isPaid) {
     await query(
       `INSERT INTO payments 
-        (restaurant_id, session_id, amount, payment_method, status, created_at, completed_at)
-      VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
-      [session.restaurant_id, session.id, totalAmount, payment_method, 'completed']
+        (restaurant_id, session_id, amount, payment_method, status, transaction_id, created_at, completed_at)
+      VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+      [session.restaurant_id, session.id, totalAmount, payment_method, 'completed', transaction_id || null]
     );
   }
 
