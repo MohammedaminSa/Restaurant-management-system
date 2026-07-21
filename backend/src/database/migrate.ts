@@ -1,0 +1,18 @@
+import { query } from '@config/database';
+
+const migrations = [
+  `ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS payment_details JSONB DEFAULT '{}'::jsonb`,
+  `ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_method payment_method`,
+  `ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_status VARCHAR(20) DEFAULT 'unpaid'`,
+];
+
+export async function runMigrations() {
+  for (const sql of migrations) {
+    try {
+      await query(sql);
+      console.log(`✓ Migration: ${sql.split(' ').slice(2, 5).join(' ')}`);
+    } catch (err: any) {
+      console.error(`✗ Migration failed: ${sql} — ${err.message}`);
+    }
+  }
+}

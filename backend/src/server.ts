@@ -1,6 +1,7 @@
 import app from './app';
 import { pool } from '@config/database';
 import { connectRedis } from '@config/redis';
+import { runMigrations } from '@database/migrate';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -13,6 +14,9 @@ const startServer = async () => {
     // Test database connection
     await pool.query('SELECT NOW()');
     console.log('✓ Database connection test passed');
+
+    // Run auto-migrations for missing columns
+    await runMigrations();
 
     // Connect to Redis (optional - only if enabled in .env)
     await connectRedis();

@@ -12,6 +12,7 @@ const aliases = {
   '@middlewares/*': ['./middlewares/*'],
   '@utils/*': ['./utils/*'],
   '@interfaces/*': ['./interfaces/*'],
+  '@database/*': ['./database/*'],
 };
 
 const originalResolve = mod._resolveFilename;
