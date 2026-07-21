@@ -31,6 +31,7 @@ CREATE TABLE restaurants (
     tax_rate DECIMAL(5,2) DEFAULT 0.00,
     service_charge_rate DECIMAL(5,2) DEFAULT 0.00,
     is_active BOOLEAN DEFAULT true,
+    payment_details JSONB DEFAULT '{}'::jsonb,
     opening_hours JSONB,
     settings JSONB,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

@@ -8,6 +8,7 @@ import {
   deleteRestaurant,
   toggleRestaurantStatus,
   getRestaurantPublic,
+  getMyRestaurant,
 } from '@controllers/restaurant.controller';
 import { authenticate, authorize } from '@middlewares/auth';
 import { validate } from '@middlewares/validator';
@@ -22,6 +23,12 @@ router.get(
   authenticate,
   authorize(UserRole.SUPER_ADMIN),
   getRestaurants
+);
+
+router.get(
+  '/my',
+  authenticate,
+  getMyRestaurant
 );
 
 router.get(

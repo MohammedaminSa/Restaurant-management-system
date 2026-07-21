@@ -73,7 +73,7 @@ export const getRestaurantById = asyncHandler(async (req: AuthRequest, res: Resp
 });
 
 export const createRestaurant = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { name, description, address, phone, email, timezone, currency, tax_rate, service_charge_rate, logo_url } = req.body;
+  const { name, description, address, phone, email, timezone, currency, tax_rate, service_charge_rate, logo_url, payment_details } = req.body;
 
   if (!name) {
     throw new AppError('Restaurant name is required', 400);
@@ -83,8 +83,8 @@ export const createRestaurant = asyncHandler(async (req: AuthRequest, res: Respo
 
   const result = await query(
     `INSERT INTO restaurants 
-      (name, slug, description, address, phone, email, timezone, currency, tax_rate, service_charge_rate, logo_url)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      (name, slug, description, address, phone, email, timezone, currency, tax_rate, service_charge_rate, logo_url, payment_details)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
     RETURNING *`,
     [
       name,
@@ -98,6 +98,7 @@ export const createRestaurant = asyncHandler(async (req: AuthRequest, res: Respo
       tax_rate || 0,
       service_charge_rate || 0,
       logo_url || null,
+      payment_details || {},
     ]
   );
 
@@ -106,7 +107,7 @@ export const createRestaurant = asyncHandler(async (req: AuthRequest, res: Respo
 
 export const updateRestaurant = asyncHandler(async (req: AuthRequest, res: Response) => {
   const { id } = req.params;
-  const { name, description, address, phone, email, timezone, currency, tax_rate, service_charge_rate, is_active, logo_url } = req.body;
+  const { name, description, address, phone, email, timezone, currency, tax_rate, service_charge_rate, is_active, logo_url, payment_details } = req.body;
 
   const checkResult = await query('SELECT id FROM restaurants WHERE id = $1', [id]);
   if (checkResult.rows.length === 0) {
@@ -127,13 +128,33 @@ export const updateRestaurant = asyncHandler(async (req: AuthRequest, res: Respo
       service_charge_rate = COALESCE($9, service_charge_rate),
       logo_url = COALESCE($10, logo_url),
       is_active = COALESCE($11, is_active),
+      payment_details = CASE WHEN $12::jsonb IS NOT NULL THEN $12::jsonb ELSE payment_details END,
       updated_at = CURRENT_TIMESTAMP
-    WHERE id = $12
+    WHERE id = $13
     RETURNING *`,
-    [name, description, address, phone, email, timezone, currency, tax_rate, service_charge_rate, logo_url || null, is_active, id]
+    [name, description, address, phone, email, timezone, currency, tax_rate, service_charge_rate, logo_url || null, is_active, payment_details || null, id]
   );
 
   return ResponseHandler.success(res, result.rows[0], 'Restaurant updated successfully');
+});
+
+// Get own restaurant info (any authenticated staff)
+export const getMyRestaurant = asyncHandler(async (req: AuthRequest, res: Response) => {
+  if (!req.user?.restaurantId) {
+    throw new AppError('You are not assigned to a restaurant', 403);
+  }
+
+  const result = await query(
+    `SELECT id, name, slug, currency, timezone, payment_details
+     FROM restaurants WHERE id = $1`,
+    [req.user.restaurantId]
+  );
+
+  if (result.rows.length === 0) {
+    throw new AppError('Restaurant not found', 404);
+  }
+
+  return ResponseHandler.success(res, result.rows[0]);
 });
 
 export const deleteRestaurant = asyncHandler(async (req: AuthRequest, res: Response) => {
