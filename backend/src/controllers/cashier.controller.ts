@@ -344,6 +344,10 @@ export const getTodayTransactions = asyncHandler(async (req: AuthRequest, res: R
     restaurantId = req.user.restaurantId;
   }
 
+  // Get restaurant timezone for accurate local date filtering
+  const restResult = await query('SELECT COALESCE(timezone, \'UTC\') as tz FROM restaurants WHERE id = $1', [restaurantId]);
+  const timezone = restResult.rows[0]?.tz || 'UTC';
+
   const result = await query(
     `SELECT p.id, p.amount, p.payment_method, p.status, p.created_at, p.completed_at,
             os.session_token, os.customer_name,
@@ -363,9 +367,9 @@ export const getTodayTransactions = asyncHandler(async (req: AuthRequest, res: R
      JOIN order_sessions os ON p.session_id = os.id
      JOIN tables t ON os.table_id = t.id
      WHERE p.restaurant_id = $1 
-       AND DATE(p.created_at) = CURRENT_DATE
+       AND (p.created_at AT TIME ZONE 'UTC' AT TIME ZONE $2)::date = (NOW() AT TIME ZONE $2)::date
      ORDER BY p.created_at DESC`,
-    [restaurantId]
+    [restaurantId, timezone]
   );
 
   // Calculate summary

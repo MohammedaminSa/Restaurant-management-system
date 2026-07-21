@@ -18,7 +18,7 @@ export async function runSeed() {
         'Demo Restaurant',
         'demo-restaurant',
         'A demo restaurant for testing',
-        'UTC',
+        'Africa/Addis_Ababa',
         'USD',
         10.0,
         5.0
