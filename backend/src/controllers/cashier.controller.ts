@@ -29,7 +29,9 @@ export const getActiveSessions = asyncHandler(async (req: AuthRequest, res: Resp
       os.status, os.started_at,
       t.table_number, t.location,
       COUNT(DISTINCT o.id) as order_count,
-      COALESCE(SUM(o.total_amount), 0) as total_bill
+      COALESCE(SUM(o.total_amount), 0) as total_bill,
+      COALESCE(SUM(CASE WHEN o.payment_status = 'paid' THEN o.total_amount ELSE 0 END), 0) as paid_amount,
+      COUNT(DISTINCT CASE WHEN o.payment_status = 'paid' THEN o.id END) as paid_order_count
     FROM order_sessions os
     JOIN tables t ON os.table_id = t.id
     LEFT JOIN orders o ON os.id = o.session_id AND o.status != 'cancelled'
@@ -79,7 +81,8 @@ export const getSessionBill = asyncHandler(async (req: AuthRequest, res: Respons
   // Get all orders for this session
   const ordersResult = await query(
     `SELECT o.id, o.order_number, o.status, o.subtotal, o.tax_amount,
-            o.service_charge, o.discount_amount, o.total_amount, o.created_at
+            o.service_charge, o.discount_amount, o.total_amount,
+            o.payment_method, o.payment_status, o.created_at
      FROM orders o
      WHERE o.session_id = $1 AND o.status != 'cancelled'
      ORDER BY o.created_at ASC`,

@@ -57,6 +57,13 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
 
   const session = sessionResult.rows[0];
 
+  // Get restaurant payment_details for the customer
+  const restaurantResult = await query(
+    `SELECT payment_details, currency FROM restaurants WHERE id = $1`,
+    [table.restaurant_id]
+  );
+  const restaurant = restaurantResult.rows[0];
+
   // Update table status to 'occupied' and link to session
   await query(
     `UPDATE tables 
@@ -73,6 +80,8 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
     customer_name: session.customer_name,
     status: session.status,
     started_at: session.started_at,
+    payment_details: restaurant.payment_details,
+    currency: restaurant.currency,
   }, 'Session created successfully');
 });
 
@@ -87,7 +96,7 @@ export const getSession = asyncHandler(async (req: AuthRequest, res: Response) =
       os.started_at, os.completed_at,
       t.table_number, t.capacity, t.location,
       r.name as restaurant_name, r.logo_url as restaurant_logo,
-      r.tax_rate, r.service_charge_rate, r.currency
+      r.tax_rate, r.service_charge_rate, r.currency, r.payment_details
     FROM order_sessions os
     JOIN tables t ON os.table_id = t.id
     JOIN restaurants r ON os.restaurant_id = r.id
@@ -104,7 +113,8 @@ export const getSession = asyncHandler(async (req: AuthRequest, res: Response) =
   // Get orders for this session
   const ordersResult = await query(
     `SELECT id, order_number, status, subtotal, tax_amount, 
-            service_charge, discount_amount, total_amount, created_at
+            service_charge, discount_amount, total_amount,
+            payment_method, payment_status, created_at
      FROM orders
      WHERE session_id = $1
      ORDER BY created_at DESC`,

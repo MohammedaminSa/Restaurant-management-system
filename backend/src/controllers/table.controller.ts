@@ -269,7 +269,7 @@ export const getTableByQRCode = asyncHandler(async (req: AuthRequest, res: Respo
     `SELECT 
       t.id, t.restaurant_id, t.table_number, t.capacity, t.location, t.status, t.current_session_id,
       r.name as restaurant_name, r.logo_url as restaurant_logo,
-      r.tax_rate, r.service_charge_rate
+      r.tax_rate, r.service_charge_rate, r.currency, r.payment_details
     FROM tables t
     LEFT JOIN restaurants r ON t.restaurant_id = r.id
     WHERE t.qr_code = $1`,

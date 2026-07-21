@@ -7,10 +7,17 @@ import { AppError } from '@middlewares/errorHandler';
 
 // Submit customer order
 export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { session_token, items, special_instructions } = req.body;
+  const { session_token, items, special_instructions, payment_method } = req.body;
 
   if (!session_token || !items || items.length === 0) {
     throw new AppError('Session token and items are required', 400);
+  }
+
+  if (payment_method) {
+    const validMethods = ['cash', 'card', 'digital_wallet', 'online', 'telebirr', 'chapa', 'bank_transfer'];
+    if (!validMethods.includes(payment_method)) {
+      throw new AppError('Invalid payment method', 400);
+    }
   }
 
   // Get session details
@@ -85,6 +92,10 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
   const serviceCharge = subtotal * (session.service_charge_rate / 100);
   const totalAmount = subtotal + taxAmount + serviceCharge;
 
+  // Determine payment status
+  const isPaid = payment_method && payment_method !== 'cash';
+  const paymentStatus = isPaid ? 'paid' : (payment_method === 'cash' ? 'unpaid' : 'unpaid');
+
   // Generate unique order number (per restaurant)
   const orderNumberResult = await query(
     `SELECT COALESCE(MAX(order_number), 0) + 1 as next_order_number
@@ -99,8 +110,8 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
     `INSERT INTO orders 
       (restaurant_id, session_id, order_number, status, order_type, 
        subtotal, tax_amount, service_charge, discount_amount, total_amount, 
-       special_instructions, created_at)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, CURRENT_TIMESTAMP)
+       special_instructions, payment_method, payment_status, created_at)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, CURRENT_TIMESTAMP)
     RETURNING *`,
     [
       session.restaurant_id,
@@ -114,10 +125,22 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
       0, // discount_amount
       totalAmount,
       special_instructions || null,
+      payment_method || null,
+      paymentStatus,
     ]
   );
 
   const order = orderResult.rows[0];
+
+  // If non-cash payment, create a payment record
+  if (isPaid) {
+    await query(
+      `INSERT INTO payments 
+        (restaurant_id, session_id, amount, payment_method, status, created_at, completed_at)
+      VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+      [session.restaurant_id, session.id, totalAmount, payment_method, 'completed']
+    );
+  }
 
   // Insert order items
   for (const item of orderItems) {
@@ -163,6 +186,8 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
     service_charge: order.service_charge,
     discount_amount: order.discount_amount,
     total_amount: order.total_amount,
+    payment_method: order.payment_method,
+    payment_status: order.payment_status,
     special_instructions: order.special_instructions,
     created_at: order.created_at,
     items: orderItemsResult.rows,
@@ -176,6 +201,7 @@ export const getOrderById = asyncHandler(async (req: AuthRequest, res: Response)
   const orderResult = await query(
     `SELECT o.id, o.order_number, o.status, o.order_type, o.subtotal, 
             o.tax_amount, o.service_charge, o.discount_amount, o.total_amount,
+            o.payment_method, o.payment_status,
             o.special_instructions, o.created_at, o.confirmed_at, o.completed_at,
             os.session_token, os.customer_name
      FROM orders o
@@ -227,6 +253,7 @@ export const getSessionOrders = asyncHandler(async (req: AuthRequest, res: Respo
   const ordersResult = await query(
     `SELECT o.id, o.order_number, o.status, o.order_type, o.subtotal,
             o.tax_amount, o.service_charge, o.discount_amount, o.total_amount,
+            o.payment_method, o.payment_status,
             o.special_instructions, o.created_at, o.confirmed_at, o.completed_at
      FROM orders o
      WHERE o.session_id = $1

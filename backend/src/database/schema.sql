@@ -153,6 +153,8 @@ CREATE TABLE orders (
     special_instructions TEXT,
     created_by_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
     assigned_to_waiter_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    payment_method payment_method,
+    payment_status VARCHAR(20) DEFAULT 'unpaid',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     confirmed_at TIMESTAMP,
@@ -277,3 +279,7 @@ ALTER TABLE tables ADD CONSTRAINT fk_tables_current_session
 -- Add assigned_waiter_id column to tables
 ALTER TABLE tables ADD COLUMN IF NOT EXISTS assigned_waiter_id UUID REFERENCES users(id) ON DELETE SET NULL;
 CREATE INDEX IF NOT EXISTS idx_tables_assigned_waiter ON tables(assigned_waiter_id);
+
+-- Add payment_method and payment_status columns to orders
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_method payment_method;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_status VARCHAR(20) DEFAULT 'unpaid';
