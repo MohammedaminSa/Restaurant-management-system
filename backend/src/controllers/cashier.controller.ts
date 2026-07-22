@@ -409,7 +409,7 @@ export const getPendingPayments = asyncHandler(async (req: AuthRequest, res: Res
   const ordersResult = await query(
     `SELECT o.id, o.order_number, o.status, o.total_amount, o.payment_method,
             o.payment_status, o.transaction_id, o.payment_account, o.created_at,
-            os.session_token, os.customer_name,
+            os.session_token, os.customer_name, os.customer_phone,
             t.table_number
      FROM orders o
      JOIN order_sessions os ON o.session_id = os.id
@@ -453,8 +453,8 @@ export const getRejectedPayments = asyncHandler(async (req: AuthRequest, res: Re
 
   const ordersResult = await query(
     `SELECT o.id, o.order_number, o.status, o.total_amount, o.payment_method,
-            o.payment_status, o.created_at,
-            os.session_token, os.customer_name,
+            o.payment_status, o.transaction_id, o.payment_account, o.created_at,
+            os.session_token, os.customer_name, os.customer_phone,
             t.table_number
      FROM orders o
      JOIN order_sessions os ON o.session_id = os.id
