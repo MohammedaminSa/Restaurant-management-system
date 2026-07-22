@@ -5,6 +5,7 @@ import morgan from 'morgan';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
+import path from 'path';
 import { errorHandler } from '@middlewares/errorHandler';
 
 dotenv.config();
@@ -134,6 +135,15 @@ import cashierRoutes from './routes/cashier.routes';
 import inventoryRoutes from './routes/inventory.routes';
 import promotionRoutes from './routes/promotion.routes';
 import restaurantRoutes from './routes/restaurant.routes';
+import uploadRoutes from './routes/upload.routes';
+
+// Serve uploaded files (create uploads dir if needed)
+import fs from 'fs';
+const uploadsDir = path.join(__dirname, '../uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+app.use('/uploads', express.static(uploadsDir));
 
 // API routes
 app.use('/api/v1/auth', authRoutes);
@@ -148,6 +158,7 @@ app.use('/api/v1', cashierRoutes);
 app.use('/api/v1', inventoryRoutes);
 app.use('/api/v1', promotionRoutes);
 app.use('/api/v1/restaurants', restaurantRoutes);
+app.use('/api/v1', uploadRoutes);
 
 // 404 handler
 app.use('*', (req: Request, res: Response) => {
