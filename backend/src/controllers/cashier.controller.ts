@@ -363,6 +363,7 @@ export const getTodayTransactions = asyncHandler(async (req: AuthRequest, res: R
      JOIN order_sessions os ON p.session_id = os.id
      JOIN tables t ON os.table_id = t.id
      WHERE p.restaurant_id = $1 
+       AND p.status = 'completed'
        AND (p.created_at AT TIME ZONE 'UTC' AT TIME ZONE $2)::date = (NOW() AT TIME ZONE $2)::date
      ORDER BY p.created_at DESC`,
     [restaurantId, timezone]
