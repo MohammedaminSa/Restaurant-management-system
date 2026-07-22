@@ -270,6 +270,12 @@ export const recordPayment = asyncHandler(async (req: AuthRequest, res: Response
 
   const payment = paymentResult.rows[0];
 
+  // Mark all unpaid orders in this session as paid
+  await query(
+    `UPDATE orders SET payment_status = 'paid', updated_at = CURRENT_TIMESTAMP WHERE session_id = $1 AND status != 'cancelled' AND payment_status = 'unpaid'`,
+    [session.id]
+  );
+
   // Session remains active — customer may continue dining
   // Waiter will close the table when the customer leaves
 

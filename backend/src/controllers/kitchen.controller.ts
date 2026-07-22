@@ -32,6 +32,7 @@ export const getKitchenOrders = asyncHandler(async (req: AuthRequest, res: Respo
       o.id, o.order_number, o.status, o.order_type, o.subtotal,
       o.tax_amount, o.service_charge, o.total_amount, 
       o.special_instructions, o.created_at, o.confirmed_at,
+      o.payment_status,
       os.session_token, os.customer_name,
       t.table_number, t.location
     FROM orders o
@@ -41,6 +42,9 @@ export const getKitchenOrders = asyncHandler(async (req: AuthRequest, res: Respo
   `;
   const params: any[] = [restaurantId];
   let paramCount = 2;
+
+  // Only show orders that have been approved by cashier
+  queryText += ` AND o.payment_status = 'paid'`;
 
   // Filter by status if provided
   if (status) {
