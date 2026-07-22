@@ -117,7 +117,7 @@ export const createOrder = asyncHandler(async (req: AuthRequest, res: Response) 
       session.restaurant_id,
       session.id,
       orderNumber,
-      'pending',
+      'awaiting_payment',
       'dine_in',
       subtotal,
       taxAmount,
@@ -260,7 +260,7 @@ export const getSessionOrders = asyncHandler(async (req: AuthRequest, res: Respo
             o.payment_method, o.payment_status,
             o.special_instructions, o.created_at, o.confirmed_at, o.completed_at
      FROM orders o
-     WHERE o.session_id = $1
+     WHERE o.session_id = $1 AND o.status != 'awaiting_payment'
      ORDER BY o.created_at DESC`,
     [session.id]
   );

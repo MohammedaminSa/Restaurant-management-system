@@ -270,9 +270,9 @@ export const recordPayment = asyncHandler(async (req: AuthRequest, res: Response
 
   const payment = paymentResult.rows[0];
 
-  // Mark all unpaid orders in this session as paid
+  // Mark all unpaid orders in this session as paid and confirmed
   await query(
-    `UPDATE orders SET payment_status = 'paid', updated_at = CURRENT_TIMESTAMP WHERE session_id = $1 AND status != 'cancelled' AND payment_status = 'unpaid'`,
+    `UPDATE orders SET payment_status = 'paid', status = 'pending', confirmed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE session_id = $1 AND status != 'cancelled' AND payment_status = 'unpaid'`,
     [session.id]
   );
 
@@ -445,9 +445,9 @@ export const approvePayment = asyncHandler(async (req: AuthRequest, res: Respons
   const paymentMethod = ordersResult.rows[0].payment_method;
   const transactionId = ordersResult.rows[0].transaction_id;
 
-  // Update all orders to paid
+  // Update all orders to paid and confirm them
   await query(
-    `UPDATE orders SET payment_status = 'paid', updated_at = CURRENT_TIMESTAMP WHERE session_id = $1 AND status != 'cancelled' AND payment_method IS NOT NULL AND payment_method != 'cash'`,
+    `UPDATE orders SET payment_status = 'paid', status = 'pending', confirmed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE session_id = $1 AND status != 'cancelled' AND payment_method IS NOT NULL AND payment_method != 'cash'`,
     [session.id]
   );
 
