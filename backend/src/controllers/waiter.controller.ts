@@ -4,6 +4,7 @@ import { query } from '@config/database';
 import { ResponseHandler } from '@utils/responseHandler';
 import { asyncHandler } from '@middlewares/errorHandler';
 import { AppError } from '@middlewares/errorHandler';
+import { v4 as uuidv4 } from 'uuid';
 
 // Get waiter's assigned tables
 export const getWaiterTables = asyncHandler(async (req: AuthRequest, res: Response) => {
@@ -108,26 +109,66 @@ export const getWaiterOrders = asyncHandler(async (req: AuthRequest, res: Respon
 
 // Place order on behalf of customer (waiter-assisted ordering)
 export const createWaiterOrder = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { session_token, items, special_instructions } = req.body;
+  const { session_token, table_id, items, special_instructions, customer_name, customer_phone, payment_method, transaction_id, payment_account } = req.body;
 
-  if (!session_token || !items || items.length === 0) {
-    throw new AppError('Session token and items are required', 400);
+  if (!items || items.length === 0) {
+    throw new AppError('Items are required', 400);
   }
 
-  // Get session details
-  const sessionResult = await query(
-    `SELECT os.id, os.restaurant_id, os.status, r.tax_rate, r.service_charge_rate
-     FROM order_sessions os
-     JOIN restaurants r ON os.restaurant_id = r.id
-     WHERE os.session_token = $1`,
-    [session_token]
-  );
-
-  if (sessionResult.rows.length === 0) {
-    throw new AppError('Session not found', 404);
+  // Resolve session: use existing session_token or create one from table_id
+  let session;
+  if (session_token) {
+    const sessionResult = await query(
+      `SELECT os.id, os.restaurant_id, os.status, r.tax_rate, r.service_charge_rate
+       FROM order_sessions os
+       JOIN restaurants r ON os.restaurant_id = r.id
+       WHERE os.session_token = $1`,
+      [session_token]
+    );
+    if (sessionResult.rows.length === 0) {
+      throw new AppError('Session not found', 404);
+    }
+    session = sessionResult.rows[0];
+  } else if (table_id) {
+    // Auto-create session for the table
+    const tableResult = await query(
+      `SELECT id, restaurant_id, status, current_session_id 
+       FROM tables WHERE id = $1`,
+      [table_id]
+    );
+    if (tableResult.rows.length === 0) {
+      throw new AppError('Table not found', 404);
+    }
+    const table = tableResult.rows[0];
+    if (table.status === 'maintenance') {
+      throw new AppError('This table is under maintenance', 400);
+    }
+    if (table.current_session_id) {
+      throw new AppError('Table already has an active session', 400);
+    }
+    const restaurantCheck = await query('SELECT is_active, tax_rate, service_charge_rate FROM restaurants WHERE id = $1', [table.restaurant_id]);
+    if (restaurantCheck.rows.length === 0 || !restaurantCheck.rows[0].is_active) {
+      throw new AppError('Restaurant is currently inactive', 503);
+    }
+    const restaurant = restaurantCheck.rows[0];
+    const sessionToken = uuidv4();
+    const sessionResult = await query(
+      `INSERT INTO order_sessions 
+        (restaurant_id, table_id, session_token, customer_name, customer_phone, status, started_at)
+      VALUES ($1, $2, $3, $4, $5, 'active', CURRENT_TIMESTAMP)
+      RETURNING id, restaurant_id`,
+      [table.restaurant_id, table_id, sessionToken, customer_name || null, customer_phone || null]
+    );
+    session = sessionResult.rows[0];
+    session.tax_rate = restaurant.tax_rate;
+    session.service_charge_rate = restaurant.service_charge_rate;
+    await query(
+      `UPDATE tables SET status = 'occupied', current_session_id = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
+      [session.id, table_id]
+    );
+  } else {
+    throw new AppError('Either session_token or table_id is required', 400);
   }
-
-  const session = sessionResult.rows[0];
 
   // Restaurant access control
   if (req.user?.role !== UserRole.SUPER_ADMIN) {
@@ -203,13 +244,18 @@ export const createWaiterOrder = asyncHandler(async (req: AuthRequest, res: Resp
   );
   const orderNumber = orderNumberResult.rows[0].next_order_number;
 
+  // Determine payment status
+  const hasPaymentInfo = payment_method && payment_method !== 'cash';
+  const paymentStatus = hasPaymentInfo ? 'unpaid' : 'unpaid';
+
   // Create order (placed by waiter)
   const orderResult = await query(
     `INSERT INTO orders 
       (restaurant_id, session_id, order_number, status, order_type, 
        subtotal, tax_amount, service_charge, discount_amount, total_amount, 
-       special_instructions, created_by_user_id, created_at)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, CURRENT_TIMESTAMP)
+       special_instructions, payment_method, payment_status, transaction_id, payment_account,
+       created_by_user_id, created_at)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, CURRENT_TIMESTAMP)
     RETURNING *`,
     [
       session.restaurant_id,
@@ -223,6 +269,10 @@ export const createWaiterOrder = asyncHandler(async (req: AuthRequest, res: Resp
       0,
       totalAmount,
       special_instructions || null,
+      payment_method || null,
+      paymentStatus,
+      hasPaymentInfo ? (transaction_id || null) : null,
+      hasPaymentInfo && payment_account ? JSON.stringify(payment_account) : null,
       req.user?.id || null,
     ]
   );
