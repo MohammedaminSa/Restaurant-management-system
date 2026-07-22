@@ -270,21 +270,8 @@ export const recordPayment = asyncHandler(async (req: AuthRequest, res: Response
 
   const payment = paymentResult.rows[0];
 
-  // Complete the session after payment
-  await query(
-    `UPDATE order_sessions 
-     SET status = $1, completed_at = CURRENT_TIMESTAMP
-     WHERE id = $2`,
-    ['completed', session.id]
-  );
-
-  // Free the table - Update table status back to 'available' and clear current_session_id
-  await query(
-    `UPDATE tables 
-     SET status = $1, current_session_id = NULL, updated_at = CURRENT_TIMESTAMP
-     WHERE id = $2`,
-    ['available', session.table_id]
-  );
+  // Session remains active — customer may continue dining
+  // Waiter will close the table when the customer leaves
 
   return ResponseHandler.created(res, {
     payment_id: payment.id,
@@ -467,13 +454,8 @@ export const approvePayment = asyncHandler(async (req: AuthRequest, res: Respons
     [session.restaurant_id, session.id, totalAmount, paymentMethod, transactionId]
   );
 
-  // Complete the session
-  await query(
-    `UPDATE order_sessions 
-     SET status = 'completed', completed_at = CURRENT_TIMESTAMP
-     WHERE id = $1`,
-    [session.id]
-  );
+  // Session remains active — customer may continue dining
+  // Waiter will close the table when the customer leaves
 
   const payment = paymentResult.rows[0];
 
