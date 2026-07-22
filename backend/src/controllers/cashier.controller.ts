@@ -408,7 +408,8 @@ export const getPendingPayments = asyncHandler(async (req: AuthRequest, res: Res
   }
 
   const ordersResult = await query(
-    `SELECT o.id, o.order_number, o.status, o.total_amount, o.payment_method,
+    `SELECT o.id, o.order_number, o.status, o.subtotal, o.tax_amount,
+            o.service_charge, o.discount_amount, o.total_amount, o.payment_method,
             o.payment_status, o.transaction_id, o.payment_account, o.created_at,
             os.session_token, os.customer_name, os.customer_phone,
             t.table_number
@@ -423,7 +424,9 @@ export const getPendingPayments = asyncHandler(async (req: AuthRequest, res: Res
   const ordersWithItems = await Promise.all(
     ordersResult.rows.map(async (order) => {
       const itemsResult = await query(
-        `SELECT oi.id, oi.quantity, oi.total_price, mi.name as item_name
+        `SELECT oi.id, oi.quantity, oi.unit_price, oi.total_price,
+                oi.selected_variants, oi.special_instructions,
+                mi.name as item_name
          FROM order_items oi
          JOIN menu_items mi ON oi.menu_item_id = mi.id
          WHERE oi.order_id = $1`,
@@ -453,7 +456,8 @@ export const getRejectedPayments = asyncHandler(async (req: AuthRequest, res: Re
   }
 
   const ordersResult = await query(
-    `SELECT o.id, o.order_number, o.status, o.total_amount, o.payment_method,
+    `SELECT o.id, o.order_number, o.status, o.subtotal, o.tax_amount,
+            o.service_charge, o.discount_amount, o.total_amount, o.payment_method,
             o.payment_status, o.transaction_id, o.payment_account, o.created_at,
             os.session_token, os.customer_name, os.customer_phone,
             t.table_number
@@ -468,7 +472,9 @@ export const getRejectedPayments = asyncHandler(async (req: AuthRequest, res: Re
   const ordersWithItems = await Promise.all(
     ordersResult.rows.map(async (order) => {
       const itemsResult = await query(
-        `SELECT oi.id, oi.quantity, oi.total_price, mi.name as item_name
+        `SELECT oi.id, oi.quantity, oi.unit_price, oi.total_price,
+                oi.selected_variants, oi.special_instructions,
+                mi.name as item_name
          FROM order_items oi
          JOIN menu_items mi ON oi.menu_item_id = mi.id
          WHERE oi.order_id = $1`,
@@ -506,7 +512,7 @@ export const approvePayment = asyncHandler(async (req: AuthRequest, res: Respons
 
   const order = orderResult.rows[0];
 
-  if (order.status !== 'awaiting_payment' || order.payment_status !== 'unpaid') {
+  if (order.status !== 'awaiting_payment' || (order.payment_status !== 'unpaid' && order.payment_status !== 'rejected')) {
     throw new AppError('Order is not pending payment', 400);
   }
 
