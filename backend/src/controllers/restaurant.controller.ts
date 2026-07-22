@@ -8,7 +8,7 @@ import { AppError } from '@middlewares/errorHandler';
 
 export const getRestaurantPublic = asyncHandler(async (req: Request, res: Response) => {
   const result = await query(
-    `SELECT id, name, slug, description, logo_url, currency, tax_rate, service_charge_rate
+    `SELECT id, name, slug, description, logo_url, currency, tax_rate, service_charge_rate, settings
      FROM restaurants WHERE is_active = true ORDER BY created_at ASC LIMIT 1`
   );
   if (result.rows.length === 0) {
@@ -145,7 +145,7 @@ export const getMyRestaurant = asyncHandler(async (req: AuthRequest, res: Respon
   }
 
   const result = await query(
-    `SELECT id, name, slug, currency, timezone, payment_details
+    `SELECT id, name, slug, currency, timezone, description, logo_url, payment_details, settings
      FROM restaurants WHERE id = $1`,
     [req.user.restaurantId]
   );
@@ -163,14 +163,18 @@ export const updateMyRestaurant = asyncHandler(async (req: AuthRequest, res: Res
     throw new AppError('You are not assigned to a restaurant', 403);
   }
 
-  const { payment_details } = req.body;
+  const { payment_details, description, logo_url, settings } = req.body;
 
   const result = await query(
     `UPDATE restaurants
-     SET payment_details = $1::jsonb, updated_at = CURRENT_TIMESTAMP
-     WHERE id = $2
-     RETURNING id, name, slug, currency, timezone, payment_details`,
-    [payment_details || {}, req.user.restaurantId]
+     SET payment_details = CASE WHEN $1::jsonb IS NOT NULL THEN $1::jsonb ELSE payment_details END,
+         description = COALESCE($2, description),
+         logo_url = COALESCE($3, logo_url),
+         settings = CASE WHEN $4::jsonb IS NOT NULL THEN $4::jsonb ELSE settings END,
+         updated_at = CURRENT_TIMESTAMP
+     WHERE id = $5
+     RETURNING id, name, slug, currency, timezone, description, logo_url, payment_details, settings`,
+    [payment_details || null, description ?? null, logo_url ?? null, settings || null, req.user.restaurantId]
   );
 
   if (result.rows.length === 0) {
