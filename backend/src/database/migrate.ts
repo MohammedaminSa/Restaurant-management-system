@@ -8,6 +8,7 @@ const migrations = [
   `ALTER TABLE orders ADD COLUMN IF NOT EXISTS transaction_id VARCHAR(255)`,
   `ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_account JSONB`,
   `ALTER TABLE payments ADD COLUMN IF NOT EXISTS order_id UUID REFERENCES orders(id) ON DELETE CASCADE`,
+  `ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS settings JSONB DEFAULT '{}'::jsonb`,
 ];
 
 export async function runMigrations() {
