@@ -349,13 +349,12 @@ export const getTodayTransactions = asyncHandler(async (req: AuthRequest, res: R
             os.session_token, os.customer_name,
             t.table_number,
             COALESCE(
-              (SELECT STRING_AGG(DISTINCT oi2.item_summary, ', ')
+              (SELECT STRING_AGG(oi2.item_summary, ', ')
                FROM (
-                 SELECT CONCAT(oi.quantity, 'x ', mi.name) AS item_summary, oi.order_id
+                 SELECT CONCAT(oi.quantity, 'x ', mi.name) AS item_summary
                  FROM order_items oi
                  JOIN menu_items mi ON oi.menu_item_id = mi.id
-                 JOIN orders o ON oi.order_id = o.id
-                 WHERE o.session_id = os.id
+                 WHERE oi.order_id = p.order_id
                ) oi2
               ), ''
             ) as items
@@ -539,10 +538,10 @@ export const approvePayment = asyncHandler(async (req: AuthRequest, res: Respons
   // Create payment record
   const paymentResult = await query(
     `INSERT INTO payments
-      (restaurant_id, session_id, amount, payment_method, status, transaction_id, created_at, completed_at)
-    VALUES ($1, $2, $3, $4, 'completed', $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      (restaurant_id, session_id, order_id, amount, payment_method, status, transaction_id, created_at, completed_at)
+    VALUES ($1, $2, $3, $4, $5, 'completed', $6, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
     RETURNING *`,
-    [order.restaurant_id, order.session_id, order.total_amount, order.payment_method || 'cash', order.transaction_id]
+    [order.restaurant_id, order.session_id, order.id, order.total_amount, order.payment_method || 'cash', order.transaction_id]
   );
 
   // Create notification
