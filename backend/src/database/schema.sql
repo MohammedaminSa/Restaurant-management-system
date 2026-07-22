@@ -6,12 +6,12 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- Create ENUM types
 CREATE TYPE user_role AS ENUM ('super_admin', 'restaurant_admin', 'kitchen_staff', 'waiter', 'cashier');
 CREATE TYPE table_status AS ENUM ('available', 'occupied', 'reserved', 'maintenance');
-CREATE TYPE order_status AS ENUM ('pending', 'confirmed', 'preparing', 'ready', 'served', 'cancelled');
+CREATE TYPE order_status AS ENUM ('awaiting_payment', 'pending', 'confirmed', 'preparing', 'ready', 'served', 'cancelled');
 CREATE TYPE order_type AS ENUM ('dine_in', 'takeaway', 'delivery');
 CREATE TYPE order_item_status AS ENUM ('pending', 'preparing', 'ready', 'served', 'cancelled');
 CREATE TYPE session_status AS ENUM ('active', 'completed', 'cancelled');
 CREATE TYPE payment_method AS ENUM ('cash', 'card', 'digital_wallet', 'online', 'telebirr', 'bank_transfer');
-CREATE TYPE payment_status AS ENUM ('pending', 'completed', 'failed', 'refunded');
+CREATE TYPE payment_status AS ENUM ('pending', 'completed', 'failed', 'refunded', 'rejected');
 CREATE TYPE discount_type AS ENUM ('percentage', 'fixed_amount');
 CREATE TYPE variant_type AS ENUM ('single_select', 'multi_select');
 CREATE TYPE inventory_transaction_type AS ENUM ('restock', 'consumption', 'adjustment', 'wastage');
@@ -286,3 +286,17 @@ ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS payment_details JSONB DEFAULT '
 -- Add payment_method and payment_status columns to orders
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_method payment_method;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_status VARCHAR(20) DEFAULT 'unpaid';
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_account JSONB;
+
+-- Notifications table
+CREATE TABLE IF NOT EXISTS notifications (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  session_id UUID NOT NULL REFERENCES order_sessions(id) ON DELETE CASCADE,
+  type VARCHAR(50) NOT NULL DEFAULT 'info',
+  title VARCHAR(255) NOT NULL,
+  message TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  read_at TIMESTAMP WITH TIME ZONE
+);
+
+CREATE INDEX IF NOT EXISTS idx_notifications_session ON notifications(session_id);

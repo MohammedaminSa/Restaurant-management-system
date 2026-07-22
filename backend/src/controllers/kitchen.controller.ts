@@ -48,22 +48,22 @@ export const getKitchenOrders = asyncHandler(async (req: AuthRequest, res: Respo
 
   // Filter by status if provided
   if (status) {
-    const validStatuses = ['pending', 'preparing', 'ready'];
+    const validStatuses = ['confirmed', 'preparing', 'ready'];
     if (!validStatuses.includes(status as string)) {
-      throw new AppError('Invalid status. Valid values: pending, preparing, ready', 400);
+      throw new AppError('Invalid status. Valid values: confirmed, preparing, ready', 400);
     }
     queryText += ` AND o.status = $${paramCount}`;
     params.push(status);
     paramCount++;
   } else {
     // Default: show only active kitchen orders
-    queryText += ` AND o.status IN ('pending', 'preparing', 'ready')`;
+    queryText += ` AND o.status IN ('confirmed', 'preparing', 'ready')`;
   }
 
-  // Order by priority: pending first, then by creation time
+  // Order by priority: confirmed first, then by creation time
   queryText += ` ORDER BY 
     CASE o.status 
-      WHEN 'pending' THEN 1 
+      WHEN 'confirmed' THEN 1 
       WHEN 'preparing' THEN 2 
       WHEN 'ready' THEN 3 
       ELSE 4 
@@ -114,8 +114,8 @@ export const updateKitchenOrderStatus = asyncHandler(async (req: AuthRequest, re
   }
 
   // Kitchen can only update to: preparing, ready
-  const validStatuses = ['preparing', 'ready'];
-  if (!validStatuses.includes(status)) {
+  const allowedTargets = ['preparing', 'ready'];
+  if (!allowedTargets.includes(status)) {
     throw new AppError('Invalid status. Kitchen can only set: preparing, ready', 400);
   }
 

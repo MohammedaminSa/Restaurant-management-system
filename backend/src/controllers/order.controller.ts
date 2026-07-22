@@ -287,6 +287,32 @@ export const getSessionOrders = asyncHandler(async (req: AuthRequest, res: Respo
   return ResponseHandler.success(res, ordersWithItems);
 });
 
+// Get notifications for a session
+export const getSessionNotifications = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const { token } = req.params;
+
+  const sessionResult = await query(
+    `SELECT id FROM order_sessions WHERE session_token = $1`,
+    [token]
+  );
+
+  if (sessionResult.rows.length === 0) {
+    throw new AppError('Session not found', 404);
+  }
+
+  const session = sessionResult.rows[0];
+
+  const notifResult = await query(
+    `SELECT id, type, title, message, created_at, read_at
+     FROM notifications
+     WHERE session_id = $1
+     ORDER BY created_at DESC`,
+    [session.id]
+  );
+
+  return ResponseHandler.success(res, notifResult.rows);
+});
+
 // Update order status
 export const updateOrderStatus = asyncHandler(async (req: AuthRequest, res: Response) => {
   const { id } = req.params;

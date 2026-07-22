@@ -4,6 +4,7 @@ import {
   createOrder, 
   getOrderById, 
   getSessionOrders, 
+  getSessionNotifications,
   updateOrderStatus 
 } from '@/controllers/order.controller';
 import { authenticate, authorize } from '@middlewares/auth';
@@ -16,6 +17,7 @@ const router = Router();
 router.post('/orders', createOrder);
 router.get('/orders/:id', getOrderById);
 router.get('/sessions/:token/orders', getSessionOrders);
+router.get('/sessions/:token/notifications', getSessionNotifications);
 
 // Protected route — only kitchen_staff or admin can update order status
 router.patch(

@@ -424,11 +424,11 @@ export const approvePayment = asyncHandler(async (req: AuthRequest, res: Respons
     throw new AppError('Session is not active', 400);
   }
 
-  // Get unpaid non-cash orders for this session
+  // Get unpaid orders for this session
   const ordersResult = await query(
     `SELECT id, total_amount, payment_method, payment_status, transaction_id
      FROM orders
-     WHERE session_id = $1 AND status != 'cancelled' AND payment_method IS NOT NULL AND payment_method != 'cash' AND payment_status = 'unpaid'`,
+     WHERE session_id = $1 AND status = 'awaiting_payment' AND payment_status = 'unpaid'`,
     [session.id]
   );
 
@@ -442,12 +442,12 @@ export const approvePayment = asyncHandler(async (req: AuthRequest, res: Respons
     0
   );
 
-  const paymentMethod = ordersResult.rows[0].payment_method;
+  const paymentMethod = ordersResult.rows[0].payment_method || 'cash';
   const transactionId = ordersResult.rows[0].transaction_id;
 
-  // Update all orders to paid and confirm them
+  // Update all orders to paid and confirmed
   await query(
-    `UPDATE orders SET payment_status = 'paid', status = 'pending', confirmed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE session_id = $1 AND status != 'cancelled' AND payment_method IS NOT NULL AND payment_method != 'cash'`,
+    `UPDATE orders SET payment_status = 'paid', status = 'confirmed', confirmed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE session_id = $1 AND status = 'awaiting_payment' AND payment_status = 'unpaid'`,
     [session.id]
   );
 
@@ -458,6 +458,13 @@ export const approvePayment = asyncHandler(async (req: AuthRequest, res: Respons
     VALUES ($1, $2, $3, $4, 'completed', $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
     RETURNING *`,
     [session.restaurant_id, session.id, totalAmount, paymentMethod, transactionId]
+  );
+
+  // Create notification for customer
+  await query(
+    `INSERT INTO notifications (session_id, type, title, message)
+     VALUES ($1, 'payment_approved', 'Payment Approved', 'Your payment has been approved. Your order is being processed.')`,
+    [session.id]
   );
 
   // Session remains active — customer may continue dining
@@ -474,4 +481,65 @@ export const approvePayment = asyncHandler(async (req: AuthRequest, res: Respons
     created_at: payment.created_at,
     bill_total: totalAmount.toFixed(2),
   }, 'Payment approved successfully');
+});
+
+// Reject pending payment
+export const rejectPayment = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const { session_token } = req.body;
+
+  if (!session_token) {
+    throw new AppError('Session token is required', 400);
+  }
+
+  // Get session
+  const sessionResult = await query(
+    `SELECT id, restaurant_id, status FROM order_sessions WHERE session_token = $1`,
+    [session_token]
+  );
+
+  if (sessionResult.rows.length === 0) {
+    throw new AppError('Session not found', 404);
+  }
+
+  const session = sessionResult.rows[0];
+
+  // Restaurant access control (except super_admin)
+  if (req.user?.role !== UserRole.SUPER_ADMIN) {
+    if (!req.user?.restaurantId) {
+      throw new AppError('User is not assigned to a restaurant', 403);
+    }
+    if (session.restaurant_id !== req.user.restaurantId) {
+      throw new AppError('Forbidden: Cannot reject payments for other restaurants', 403);
+    }
+  }
+
+  if (session.status !== 'active') {
+    throw new AppError('Session is not active', 400);
+  }
+
+  // Get unpaid orders for this session
+  const ordersResult = await query(
+    `SELECT id, total_amount, payment_method FROM orders
+     WHERE session_id = $1 AND status = 'awaiting_payment' AND payment_status = 'unpaid'`,
+    [session.id]
+  );
+
+  if (ordersResult.rows.length === 0) {
+    throw new AppError('No pending payments found for this session', 400);
+  }
+
+  // Update all orders to rejected
+  await query(
+    `UPDATE orders SET payment_status = 'rejected', updated_at = CURRENT_TIMESTAMP WHERE session_id = $1 AND status = 'awaiting_payment' AND payment_status = 'unpaid'`,
+    [session.id]
+  );
+
+  // Create notification for customer
+  await query(
+    `INSERT INTO notifications (session_id, type, title, message)
+     VALUES ($1, 'payment_rejected', 'Payment Rejected', 'Your payment could not be verified. Please check your payment details and try again.')`,
+    [session.id]
+  );
+
+  return ResponseHandler.success(res, null, 'Payment rejected');
 });
