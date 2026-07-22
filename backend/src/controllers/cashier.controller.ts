@@ -390,65 +390,143 @@ export const getTodayTransactions = asyncHandler(async (req: AuthRequest, res: R
   });
 });
 
-// Approve pending payment (cashier confirms customer's submitted payment)
-export const approvePayment = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { session_token } = req.body;
+// Get all pending (awaiting_payment) orders with session details
+export const getPendingPayments = asyncHandler(async (req: AuthRequest, res: Response) => {
+  let restaurantId: string;
 
-  if (!session_token) {
-    throw new AppError('Session token is required', 400);
+  if (req.user?.role === UserRole.SUPER_ADMIN) {
+    if (!req.query.restaurantId) {
+      throw new AppError('Restaurant ID is required for super admin', 400);
+    }
+    restaurantId = req.query.restaurantId as string;
+  } else {
+    if (!req.user?.restaurantId) {
+      throw new AppError('User is not assigned to a restaurant', 403);
+    }
+    restaurantId = req.user.restaurantId;
   }
 
-  // Get session
-  const sessionResult = await query(
-    `SELECT id, restaurant_id, status FROM order_sessions WHERE session_token = $1`,
-    [session_token]
+  const ordersResult = await query(
+    `SELECT o.id, o.order_number, o.status, o.total_amount, o.payment_method,
+            o.payment_status, o.transaction_id, o.payment_account, o.created_at,
+            os.session_token, os.customer_name,
+            t.table_number
+     FROM orders o
+     JOIN order_sessions os ON o.session_id = os.id
+     JOIN tables t ON os.table_id = t.id
+     WHERE o.restaurant_id = $1 AND o.status = 'awaiting_payment' AND o.payment_status = 'unpaid'
+     ORDER BY o.created_at ASC`,
+    [restaurantId]
   );
 
-  if (sessionResult.rows.length === 0) {
-    throw new AppError('Session not found', 404);
+  const ordersWithItems = await Promise.all(
+    ordersResult.rows.map(async (order) => {
+      const itemsResult = await query(
+        `SELECT oi.id, oi.quantity, oi.total_price, mi.name as item_name
+         FROM order_items oi
+         JOIN menu_items mi ON oi.menu_item_id = mi.id
+         WHERE oi.order_id = $1`,
+        [order.id]
+      );
+      return { ...order, items: itemsResult.rows };
+    })
+  );
+
+  return ResponseHandler.success(res, ordersWithItems);
+});
+
+// Get all rejected payments
+export const getRejectedPayments = asyncHandler(async (req: AuthRequest, res: Response) => {
+  let restaurantId: string;
+
+  if (req.user?.role === UserRole.SUPER_ADMIN) {
+    if (!req.query.restaurantId) {
+      throw new AppError('Restaurant ID is required for super admin', 400);
+    }
+    restaurantId = req.query.restaurantId as string;
+  } else {
+    if (!req.user?.restaurantId) {
+      throw new AppError('User is not assigned to a restaurant', 403);
+    }
+    restaurantId = req.user.restaurantId;
   }
 
-  const session = sessionResult.rows[0];
+  const ordersResult = await query(
+    `SELECT o.id, o.order_number, o.status, o.total_amount, o.payment_method,
+            o.payment_status, o.created_at,
+            os.session_token, os.customer_name,
+            t.table_number
+     FROM orders o
+     JOIN order_sessions os ON o.session_id = os.id
+     JOIN tables t ON os.table_id = t.id
+     WHERE o.restaurant_id = $1 AND o.payment_status = 'rejected'
+     ORDER BY o.created_at DESC`,
+    [restaurantId]
+  );
 
-  // Restaurant access control (except super_admin)
+  const ordersWithItems = await Promise.all(
+    ordersResult.rows.map(async (order) => {
+      const itemsResult = await query(
+        `SELECT oi.id, oi.quantity, oi.total_price, mi.name as item_name
+         FROM order_items oi
+         JOIN menu_items mi ON oi.menu_item_id = mi.id
+         WHERE oi.order_id = $1`,
+        [order.id]
+      );
+      return { ...order, items: itemsResult.rows };
+    })
+  );
+
+  return ResponseHandler.success(res, ordersWithItems);
+});
+
+// Approve a single pending order
+export const approvePayment = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const { order_id } = req.body;
+
+  if (!order_id) {
+    throw new AppError('Order ID is required', 400);
+  }
+
+  // Get order with session info
+  const orderResult = await query(
+    `SELECT o.id, o.restaurant_id, o.session_id, o.total_amount, o.payment_method,
+            o.transaction_id, o.status, o.payment_status,
+            os.status as session_status
+     FROM orders o
+     JOIN order_sessions os ON o.session_id = os.id
+     WHERE o.id = $1`,
+    [order_id]
+  );
+
+  if (orderResult.rows.length === 0) {
+    throw new AppError('Order not found', 404);
+  }
+
+  const order = orderResult.rows[0];
+
+  if (order.status !== 'awaiting_payment' || order.payment_status !== 'unpaid') {
+    throw new AppError('Order is not pending payment', 400);
+  }
+
+  // Restaurant access control
   if (req.user?.role !== UserRole.SUPER_ADMIN) {
     if (!req.user?.restaurantId) {
       throw new AppError('User is not assigned to a restaurant', 403);
     }
-    if (session.restaurant_id !== req.user.restaurantId) {
+    if (order.restaurant_id !== req.user.restaurantId) {
       throw new AppError('Forbidden: Cannot approve payments for other restaurants', 403);
     }
   }
 
-  if (session.status !== 'active') {
+  if (order.session_status !== 'active') {
     throw new AppError('Session is not active', 400);
   }
 
-  // Get unpaid orders for this session
-  const ordersResult = await query(
-    `SELECT id, total_amount, payment_method, payment_status, transaction_id
-     FROM orders
-     WHERE session_id = $1 AND status = 'awaiting_payment' AND payment_status = 'unpaid'`,
-    [session.id]
-  );
-
-  if (ordersResult.rows.length === 0) {
-    throw new AppError('No pending payments found for this session', 400);
-  }
-
-  // Calculate total
-  const totalAmount = ordersResult.rows.reduce(
-    (sum: number, o: any) => sum + parseFloat(o.total_amount),
-    0
-  );
-
-  const paymentMethod = ordersResult.rows[0].payment_method || 'cash';
-  const transactionId = ordersResult.rows[0].transaction_id;
-
-  // Update all orders to paid and confirmed
+  // Update order to paid and confirmed
   await query(
-    `UPDATE orders SET payment_status = 'paid', status = 'confirmed', confirmed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE session_id = $1 AND status = 'awaiting_payment' AND payment_status = 'unpaid'`,
-    [session.id]
+    `UPDATE orders SET payment_status = 'paid', status = 'confirmed', confirmed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
+    [order.id]
   );
 
   // Create payment record
@@ -457,18 +535,15 @@ export const approvePayment = asyncHandler(async (req: AuthRequest, res: Respons
       (restaurant_id, session_id, amount, payment_method, status, transaction_id, created_at, completed_at)
     VALUES ($1, $2, $3, $4, 'completed', $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
     RETURNING *`,
-    [session.restaurant_id, session.id, totalAmount, paymentMethod, transactionId]
+    [order.restaurant_id, order.session_id, order.total_amount, order.payment_method || 'cash', order.transaction_id]
   );
 
-  // Create notification for customer
+  // Create notification
   await query(
     `INSERT INTO notifications (session_id, type, title, message)
      VALUES ($1, 'payment_approved', 'Payment Approved', 'Your payment has been approved. Your order is being processed.')`,
-    [session.id]
+    [order.session_id]
   );
-
-  // Session remains active — customer may continue dining
-  // Waiter will close the table when the customer leaves
 
   const payment = paymentResult.rows[0];
 
@@ -479,67 +554,102 @@ export const approvePayment = asyncHandler(async (req: AuthRequest, res: Respons
     status: payment.status,
     transaction_id: payment.transaction_id,
     created_at: payment.created_at,
-    bill_total: totalAmount.toFixed(2),
   }, 'Payment approved successfully');
 });
 
-// Reject pending payment
+// Reject a single pending order
 export const rejectPayment = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { session_token } = req.body;
+  const { order_id } = req.body;
 
-  if (!session_token) {
-    throw new AppError('Session token is required', 400);
+  if (!order_id) {
+    throw new AppError('Order ID is required', 400);
   }
 
-  // Get session
-  const sessionResult = await query(
-    `SELECT id, restaurant_id, status FROM order_sessions WHERE session_token = $1`,
-    [session_token]
+  const orderResult = await query(
+    `SELECT o.id, o.restaurant_id, o.session_id, o.status, o.payment_status,
+            os.status as session_status
+     FROM orders o
+     JOIN order_sessions os ON o.session_id = os.id
+     WHERE o.id = $1`,
+    [order_id]
   );
 
-  if (sessionResult.rows.length === 0) {
-    throw new AppError('Session not found', 404);
+  if (orderResult.rows.length === 0) {
+    throw new AppError('Order not found', 404);
   }
 
-  const session = sessionResult.rows[0];
+  const order = orderResult.rows[0];
 
-  // Restaurant access control (except super_admin)
+  if (order.status !== 'awaiting_payment' || order.payment_status !== 'unpaid') {
+    throw new AppError('Order is not pending payment', 400);
+  }
+
+  // Restaurant access control
   if (req.user?.role !== UserRole.SUPER_ADMIN) {
     if (!req.user?.restaurantId) {
       throw new AppError('User is not assigned to a restaurant', 403);
     }
-    if (session.restaurant_id !== req.user.restaurantId) {
+    if (order.restaurant_id !== req.user.restaurantId) {
       throw new AppError('Forbidden: Cannot reject payments for other restaurants', 403);
     }
   }
 
-  if (session.status !== 'active') {
+  if (order.session_status !== 'active') {
     throw new AppError('Session is not active', 400);
   }
 
-  // Get unpaid orders for this session
-  const ordersResult = await query(
-    `SELECT id, total_amount, payment_method FROM orders
-     WHERE session_id = $1 AND status = 'awaiting_payment' AND payment_status = 'unpaid'`,
-    [session.id]
-  );
-
-  if (ordersResult.rows.length === 0) {
-    throw new AppError('No pending payments found for this session', 400);
-  }
-
-  // Update all orders to rejected
+  // Update order to rejected
   await query(
-    `UPDATE orders SET payment_status = 'rejected', updated_at = CURRENT_TIMESTAMP WHERE session_id = $1 AND status = 'awaiting_payment' AND payment_status = 'unpaid'`,
-    [session.id]
+    `UPDATE orders SET payment_status = 'rejected', updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
+    [order.id]
   );
 
-  // Create notification for customer
+  // Create notification
   await query(
     `INSERT INTO notifications (session_id, type, title, message)
      VALUES ($1, 'payment_rejected', 'Payment Rejected', 'Your payment could not be verified. Please check your payment details and try again.')`,
-    [session.id]
+    [order.session_id]
   );
 
   return ResponseHandler.success(res, null, 'Payment rejected');
+});
+
+// Delete (cancel) a rejected payment
+export const deleteRejectedPayment = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const { id } = req.params;
+
+  const orderResult = await query(
+    `SELECT o.id, o.restaurant_id, o.payment_status
+     FROM orders o
+     WHERE o.id = $1`,
+    [id]
+  );
+
+  if (orderResult.rows.length === 0) {
+    throw new AppError('Order not found', 404);
+  }
+
+  const order = orderResult.rows[0];
+
+  if (order.payment_status !== 'rejected') {
+    throw new AppError('Order is not a rejected payment', 400);
+  }
+
+  // Restaurant access control
+  if (req.user?.role !== UserRole.SUPER_ADMIN) {
+    if (!req.user?.restaurantId) {
+      throw new AppError('User is not assigned to a restaurant', 403);
+    }
+    if (order.restaurant_id !== req.user.restaurantId) {
+      throw new AppError('Forbidden: Cannot delete payments for other restaurants', 403);
+    }
+  }
+
+  // Cancel the order
+  await query(
+    `UPDATE orders SET status = 'cancelled', payment_status = 'cancelled', updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
+    [order.id]
+  );
+
+  return ResponseHandler.success(res, null, 'Rejected payment deleted');
 });

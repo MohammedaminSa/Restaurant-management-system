@@ -6,6 +6,9 @@ import {
   recordPayment,
   approvePayment,
   rejectPayment,
+  deleteRejectedPayment,
+  getPendingPayments,
+  getRejectedPayments,
   getPayment,
   getTodayTransactions
 } from '@/controllers/cashier.controller';
@@ -42,6 +45,18 @@ router.post(
   recordPayment
 );
 
+router.get(
+  '/cashier/payments/pending',
+  authorize(UserRole.SUPER_ADMIN, UserRole.RESTAURANT_ADMIN, UserRole.CASHIER),
+  getPendingPayments
+);
+
+router.get(
+  '/cashier/payments/rejected',
+  authorize(UserRole.SUPER_ADMIN, UserRole.RESTAURANT_ADMIN, UserRole.CASHIER),
+  getRejectedPayments
+);
+
 router.post(
   '/cashier/payments/approve',
   authorize(UserRole.SUPER_ADMIN, UserRole.RESTAURANT_ADMIN, UserRole.CASHIER),
@@ -52,6 +67,12 @@ router.post(
   '/cashier/payments/reject',
   authorize(UserRole.SUPER_ADMIN, UserRole.RESTAURANT_ADMIN, UserRole.CASHIER),
   rejectPayment
+);
+
+router.delete(
+  '/cashier/payments/rejected/:id',
+  authorize(UserRole.SUPER_ADMIN, UserRole.RESTAURANT_ADMIN, UserRole.CASHIER),
+  deleteRejectedPayment
 );
 
 router.get(
