@@ -145,7 +145,8 @@ export const getMyRestaurant = asyncHandler(async (req: AuthRequest, res: Respon
   }
 
   const result = await query(
-    `SELECT id, name, slug, currency, timezone, description, logo_url, payment_details, settings
+    `SELECT id, name, slug, description, logo_url, address, phone, email,
+            currency, timezone, tax_rate, service_charge_rate, payment_details, settings
      FROM restaurants WHERE id = $1`,
     [req.user.restaurantId]
   );
@@ -163,18 +164,34 @@ export const updateMyRestaurant = asyncHandler(async (req: AuthRequest, res: Res
     throw new AppError('You are not assigned to a restaurant', 403);
   }
 
-  const { payment_details, description, logo_url, settings } = req.body;
+  const {
+    payment_details, description, logo_url, settings,
+    name, address, phone, email, currency, timezone,
+    tax_rate, service_charge_rate
+  } = req.body;
 
   const result = await query(
     `UPDATE restaurants
-     SET payment_details = CASE WHEN $1::jsonb IS NOT NULL THEN $1::jsonb ELSE payment_details END,
+     SET name = COALESCE($1, name),
          description = COALESCE($2, description),
          logo_url = COALESCE($3, logo_url),
-         settings = CASE WHEN $4::jsonb IS NOT NULL THEN $4::jsonb ELSE settings END,
+         address = COALESCE($4, address),
+         phone = COALESCE($5, phone),
+         email = COALESCE($6, email),
+         currency = COALESCE($7, currency),
+         timezone = COALESCE($8, timezone),
+         tax_rate = COALESCE($9, tax_rate),
+         service_charge_rate = COALESCE($10, service_charge_rate),
+         payment_details = CASE WHEN $11::jsonb IS NOT NULL THEN $11::jsonb ELSE payment_details END,
+         settings = CASE WHEN $12::jsonb IS NOT NULL THEN $12::jsonb ELSE settings END,
          updated_at = CURRENT_TIMESTAMP
-     WHERE id = $5
-     RETURNING id, name, slug, currency, timezone, description, logo_url, payment_details, settings`,
-    [payment_details || null, description ?? null, logo_url ?? null, settings || null, req.user.restaurantId]
+     WHERE id = $13
+     RETURNING id, name, slug, description, logo_url, address, phone, email,
+               currency, timezone, tax_rate, service_charge_rate, payment_details, settings`,
+    [name ?? null, description ?? null, logo_url ?? null, address ?? null,
+     phone ?? null, email ?? null, currency ?? null, timezone ?? null,
+     tax_rate ?? null, service_charge_rate ?? null,
+     payment_details || null, settings || null, req.user.restaurantId]
   );
 
   if (result.rows.length === 0) {
