@@ -115,26 +115,12 @@ export const createWaiterOrder = asyncHandler(async (req: AuthRequest, res: Resp
     throw new AppError('Items are required', 400);
   }
 
-  // Resolve session: use existing session_token or create one from table_id
-  let session;
-  if (session_token) {
-    const sessionResult = await query(
-      `SELECT os.id, os.restaurant_id, os.status, r.tax_rate, r.service_charge_rate
-       FROM order_sessions os
-       JOIN restaurants r ON os.restaurant_id = r.id
-       WHERE os.session_token = $1`,
-      [session_token]
-    );
-    if (sessionResult.rows.length === 0) {
-      throw new AppError('Session not found', 404);
-    }
-    session = sessionResult.rows[0];
-  } else if (table_id) {
-    // Auto-create session for the table
+  // Helper to create a new session for a table
+  const createNewSession = async (tableId: string, custName?: string, custPhone?: string) => {
     const tableResult = await query(
       `SELECT id, restaurant_id, status, current_session_id 
        FROM tables WHERE id = $1`,
-      [table_id]
+      [tableId]
     );
     if (tableResult.rows.length === 0) {
       throw new AppError('Table not found', 404);
@@ -151,21 +137,44 @@ export const createWaiterOrder = asyncHandler(async (req: AuthRequest, res: Resp
       throw new AppError('Restaurant is currently inactive', 503);
     }
     const restaurant = restaurantCheck.rows[0];
-    const sessionToken = uuidv4();
+    const newToken = uuidv4();
     const sessionResult = await query(
       `INSERT INTO order_sessions 
         (restaurant_id, table_id, session_token, customer_name, customer_phone, status, started_at)
       VALUES ($1, $2, $3, $4, $5, 'active', CURRENT_TIMESTAMP)
       RETURNING id, restaurant_id`,
-      [table.restaurant_id, table_id, sessionToken, customer_name || null, customer_phone || null]
+      [table.restaurant_id, tableId, newToken, custName || null, custPhone || null]
     );
-    session = sessionResult.rows[0];
-    session.tax_rate = restaurant.tax_rate;
-    session.service_charge_rate = restaurant.service_charge_rate;
+    const s = sessionResult.rows[0];
+    s.tax_rate = restaurant.tax_rate;
+    s.service_charge_rate = restaurant.service_charge_rate;
     await query(
       `UPDATE tables SET status = 'occupied', current_session_id = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
-      [session.id, table_id]
+      [s.id, tableId]
     );
+    return s;
+  };
+
+  // Resolve session: use existing active session, or auto-create one from table_id
+  let session;
+  if (session_token) {
+    const sessionResult = await query(
+      `SELECT os.id, os.restaurant_id, os.table_id, os.status, r.tax_rate, r.service_charge_rate
+       FROM order_sessions os
+       JOIN restaurants r ON os.restaurant_id = r.id
+       WHERE os.session_token = $1`,
+      [session_token]
+    );
+    if (sessionResult.rows.length === 0) {
+      throw new AppError('Session not found', 404);
+    }
+    session = sessionResult.rows[0];
+    if (session.status !== 'active') {
+      // Session expired — auto-create a new session for the same table
+      session = await createNewSession(session.table_id, customer_name, customer_phone);
+    }
+  } else if (table_id) {
+    session = await createNewSession(table_id, customer_name, customer_phone);
   } else {
     throw new AppError('Either session_token or table_id is required', 400);
   }
@@ -178,10 +187,6 @@ export const createWaiterOrder = asyncHandler(async (req: AuthRequest, res: Resp
     if (session.restaurant_id !== req.user.restaurantId) {
       throw new AppError('Forbidden: Cannot create orders for other restaurants', 403);
     }
-  }
-
-  if (session.status !== 'active') {
-    throw new AppError('Session is not active', 400);
   }
 
   // Validate and fetch menu items
