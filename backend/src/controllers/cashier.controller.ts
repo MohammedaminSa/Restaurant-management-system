@@ -525,10 +525,6 @@ export const approvePayment = asyncHandler(async (req: AuthRequest, res: Respons
     }
   }
 
-  if (order.session_status !== 'active') {
-    throw new AppError('Session is not active', 400);
-  }
-
   // Update order to paid and confirmed
   await query(
     `UPDATE orders SET payment_status = 'paid', status = 'confirmed', confirmed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
@@ -598,10 +594,6 @@ export const rejectPayment = asyncHandler(async (req: AuthRequest, res: Response
     if (order.restaurant_id !== req.user.restaurantId) {
       throw new AppError('Forbidden: Cannot reject payments for other restaurants', 403);
     }
-  }
-
-  if (order.session_status !== 'active') {
-    throw new AppError('Session is not active', 400);
   }
 
   // Update order to rejected
