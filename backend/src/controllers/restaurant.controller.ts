@@ -7,6 +7,9 @@ import { asyncHandler } from '@middlewares/errorHandler';
 import { AppError } from '@middlewares/errorHandler';
 
 export const getRestaurantPublic = asyncHandler(async (req: Request, res: Response) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
   const result = await query(
     `SELECT id, name, slug, description, logo_url, currency, tax_rate, service_charge_rate, settings
      FROM restaurants WHERE is_active = true ORDER BY created_at ASC LIMIT 1`
