@@ -29,7 +29,7 @@ export const getWaiterTables = asyncHandler(async (req: AuthRequest, res: Respon
       t.current_session_id, t.created_at, t.updated_at,
       os.session_token, os.customer_name, os.started_at
     FROM tables t
-    LEFT JOIN order_sessions os ON t.current_session_id = os.id
+    LEFT JOIN order_sessions os ON t.current_session_id = os.id AND os.status = 'active'
     WHERE t.restaurant_id = $1
     ORDER BY t.table_number ASC`,
     [restaurantId]
@@ -246,7 +246,7 @@ export const createWaiterOrder = asyncHandler(async (req: AuthRequest, res: Resp
 
   // Determine payment status and order status
   const isDigitalPayment = payment_method && payment_method !== 'cash';
-  const orderStatus = isDigitalPayment ? 'awaiting_payment' : 'pending';
+  const orderStatus = 'awaiting_payment';
 
   // Create order (placed by waiter)
   const orderResult = await query(
