@@ -244,9 +244,9 @@ export const createWaiterOrder = asyncHandler(async (req: AuthRequest, res: Resp
   );
   const orderNumber = orderNumberResult.rows[0].next_order_number;
 
-  // Determine payment status
-  const hasPaymentInfo = payment_method && payment_method !== 'cash';
-  const paymentStatus = hasPaymentInfo ? 'unpaid' : 'unpaid';
+  // Determine payment status and order status
+  const isDigitalPayment = payment_method && payment_method !== 'cash';
+  const orderStatus = isDigitalPayment ? 'awaiting_payment' : 'pending';
 
   // Create order (placed by waiter)
   const orderResult = await query(
@@ -261,7 +261,7 @@ export const createWaiterOrder = asyncHandler(async (req: AuthRequest, res: Resp
       session.restaurant_id,
       session.id,
       orderNumber,
-      'pending',
+      orderStatus,
       'dine_in',
       subtotal,
       taxAmount,
@@ -270,14 +270,24 @@ export const createWaiterOrder = asyncHandler(async (req: AuthRequest, res: Resp
       totalAmount,
       special_instructions || null,
       payment_method || null,
-      paymentStatus,
-      hasPaymentInfo ? (transaction_id || null) : null,
-      hasPaymentInfo && payment_account ? JSON.stringify(payment_account) : null,
+      'unpaid',
+      isDigitalPayment ? (transaction_id || null) : null,
+      isDigitalPayment && payment_account ? JSON.stringify(payment_account) : null,
       req.user?.id || null,
     ]
   );
 
   const order = orderResult.rows[0];
+
+  // For non-cash, create payment record with 'pending' status (awaiting cashier approval)
+  if (isDigitalPayment) {
+    await query(
+      `INSERT INTO payments 
+        (restaurant_id, session_id, order_id, amount, payment_method, status, transaction_id, created_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP)`,
+      [session.restaurant_id, session.id, order.id, totalAmount, payment_method, 'pending', transaction_id || null]
+    );
+  }
 
   // Insert order items
   for (const item of orderItems) {
