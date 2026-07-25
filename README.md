@@ -11,7 +11,6 @@ A modern, web-based Progressive Web App (PWA) restaurant ordering system that en
 - [API Testing](#-api-testing)
 - [Project Structure](#-project-structure)
 - [Available Scripts](#-available-scripts)
-- [Environment Variables](#-environment-variables)
 - [Development Status](#-development-status)
 
 ---
@@ -73,7 +72,6 @@ A modern, web-based Progressive Web App (PWA) restaurant ordering system that en
 - 📘 **TypeScript**
 - 🐘 **PostgreSQL** - Primary database
 - 🔴 **Redis** (Optional) - Caching layer
-- 🔐 **JWT** - Authentication
 - 🔌 **WebSocket** - Real-time updates
 
 ### Infrastructure
@@ -104,7 +102,7 @@ cd backend
 npm install
 
 # Install frontend dependencies
-cd ../frontend
+cd ../new-frontend
 npm install
 ```
 
@@ -141,15 +139,7 @@ psql -U postgres -d restaurant_db -f backend/create-db.sql
 # Backend: Copy and edit .env file
 cd backend
 copy .env.example .env
-# Edit .env with your database credentials
-```
-
-**Key Variables to Update in `backend/.env`:**
-```env
-DB_PASSWORD=your_postgres_password
-JWT_SECRET=your_secret_key
-JWT_REFRESH_SECRET=your_refresh_secret_key
-REDIS_ENABLED=false  # Set to true if using Redis
+# Edit .env with your credentials
 ```
 
 ---
@@ -161,12 +151,7 @@ REDIS_ENABLED=false  # Set to true if using Redis
 npm run seed
 ```
 
-This creates 5 test users:
-- **Super Admin**: `admin@restaurant.com` / `admin123`
-- **Restaurant Admin**: `restaurant@demo.com` / `admin123`
-- **Kitchen Staff**: `kitchen@demo.com` / `kitchen123`
-- **Waiter**: `waiter@demo.com` / `waiter123`
-- **Cashier**: `cashier@demo.com` / `cashier123`
+This creates 5 test users with different roles (super admin, restaurant admin, kitchen staff, waiter, cashier).
 
 ---
 
@@ -188,7 +173,7 @@ cd backend
 npm run dev
 
 # Terminal 2 - Frontend
-cd frontend
+cd new-frontend
 npm run dev
 ```
 
@@ -215,10 +200,6 @@ npm run dev
    List Users:   GET http://localhost:5000/api/v1/users
    ```
 
-3. **Auto Token Management**
-   - Login automatically saves JWT token
-   - All protected routes use saved token
-
 ### Quick cURL Tests
 
 ```bash
@@ -243,14 +224,14 @@ restaurant-ordering-system/
 │   ├── src/
 │   │   ├── config/          # Database, Redis config
 │   │   ├── controllers/     # Route handlers
-│   │   ├── middlewares/     # Auth, validation, errors
+│   │   ├── middlewares/     # Request processing
 │   │   ├── routes/          # API routes
 │   │   ├── utils/           # Helper functions
 │   │   ├── interfaces/      # TypeScript types
 │   │   ├── database/        # Schema & seed scripts
 │   │   ├── app.ts           # Express app setup
 │   │   └── server.ts        # Server entry point
-│   ├── .env                 # Environment variables
+│   ├── .env.example         # Environment template
 │   ├── package.json
 │   └── tsconfig.json
 │
@@ -294,74 +275,22 @@ npm run lint     # Run ESLint
 
 ---
 
-## 🔐 Environment Variables
-
-### Backend `.env`
-
-```env
-# Server
-PORT=5000
-NODE_ENV=development
-
-# Database
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=restaurant_db
-DB_USER=postgres
-DB_PASSWORD=your_password
-
-# Redis (Optional)
-REDIS_ENABLED=false
-REDIS_HOST=localhost
-REDIS_PORT=6379
-
-# JWT
-JWT_SECRET=your_secret_key
-JWT_REFRESH_SECRET=your_refresh_key
-JWT_EXPIRES_IN=1h
-JWT_REFRESH_EXPIRES_IN=7d
-
-# CORS
-CORS_ORIGIN=http://localhost:5173
-```
-
-### Frontend `.env`
-
-```env
-VITE_API_URL=http://localhost:5000/api/v1
-```
-
----
-
 ## 📊 Development Status
 
-### ✅ Completed (Phase 1)
-- [x] Backend server setup (Express + TypeScript)
-- [x] PostgreSQL database (15 tables)
-- [x] Authentication system (JWT)
-- [x] User management (CRUD)
-- [x] Role-based access control (5 roles)
-- [x] API documentation
-- [x] Postman collection
-- [x] Database seeding
+### ✅ Completed
+- [x] Backend API (Express + TypeScript, 78+ endpoints)
+- [x] PostgreSQL database (15 tables with migrations)
+- [x] User & role management (5 roles)
+- [x] Customer menu browsing & ordering
+- [x] QR code scanning & session management
+- [x] Kitchen dashboard with real-time orders
+- [x] Waiter dashboard (table assignment, order serving)
+- [x] Cashier dashboard (payment processing, transactions)
+- [x] Admin dashboard (charts, reports, settings)
+- [x] Inventory & promotion management
+- [x] File uploads (Cloudinary)
 - [x] Docker configuration
-- [x] Windows setup scripts
-
-### 🚧 In Progress
-- [ ] Frontend UI development
-- [ ] Menu management
-- [ ] Table management
-- [ ] Order system
-- [ ] Kitchen dashboard
-- [ ] Payment processing
-
-### 📅 Planned
-- [ ] Real-time WebSocket notifications
-- [ ] QR code generation
-- [ ] PWA features
-- [ ] Admin dashboard
-- [ ] Analytics & reporting
-- [ ] Multi-restaurant support
+- [x] Responsive UI with dark mode
 
 ---
 
