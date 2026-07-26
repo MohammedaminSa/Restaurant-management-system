@@ -327,6 +327,18 @@ export const updateOrderStatus = asyncHandler(async (req: AuthRequest, res: Resp
     throw new AppError('Invalid status', 400);
   }
 
+  // Check order ownership
+  const orderCheck = await query('SELECT id, restaurant_id FROM orders WHERE id = $1', [id]);
+  if (orderCheck.rows.length === 0) {
+    throw new AppError('Order not found', 404);
+  }
+
+  if (req.user?.role !== 'super_admin') {
+    if (!req.user?.restaurantId || orderCheck.rows[0].restaurant_id !== req.user.restaurantId) {
+      throw new AppError('Forbidden: Cannot update orders from other restaurants', 403);
+    }
+  }
+
   // Build dynamic update query based on status
   let updateFields = 'status = $1, updated_at = CURRENT_TIMESTAMP';
   const params: any[] = [status, id];
@@ -344,10 +356,6 @@ export const updateOrderStatus = asyncHandler(async (req: AuthRequest, res: Resp
      RETURNING id, order_number, status, confirmed_at, completed_at`,
     params
   );
-
-  if (result.rows.length === 0) {
-    throw new AppError('Order not found', 404);
-  }
 
   return ResponseHandler.success(res, result.rows[0], 'Order status updated successfully');
 });

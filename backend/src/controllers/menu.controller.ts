@@ -346,11 +346,17 @@ export const updateMenuItem = asyncHandler(async (req: AuthRequest, res: Respons
     display_order,
   } = req.body;
 
-  // Check if item exists
-  const checkResult = await query('SELECT id FROM menu_items WHERE id = $1', [id]);
+  // Check if item exists and verify ownership
+  const checkResult = await query('SELECT id, restaurant_id FROM menu_items WHERE id = $1', [id]);
   
   if (checkResult.rows.length === 0) {
     throw new AppError('Menu item not found', 404);
+  }
+
+  if (req.user?.role !== 'super_admin') {
+    if (!req.user?.restaurantId || checkResult.rows[0].restaurant_id !== req.user.restaurantId) {
+      throw new AppError('Forbidden: Cannot update items from other restaurants', 403);
+    }
   }
 
   const result = await query(
@@ -393,11 +399,19 @@ export const updateMenuItem = asyncHandler(async (req: AuthRequest, res: Respons
 export const deleteMenuItem = asyncHandler(async (req: AuthRequest, res: Response) => {
   const { id } = req.params;
 
-  const result = await query('DELETE FROM menu_items WHERE id = $1 RETURNING id', [id]);
-
-  if (result.rows.length === 0) {
+  // Verify ownership before delete
+  const checkResult = await query('SELECT id, restaurant_id FROM menu_items WHERE id = $1', [id]);
+  if (checkResult.rows.length === 0) {
     throw new AppError('Menu item not found', 404);
   }
+
+  if (req.user?.role !== 'super_admin') {
+    if (!req.user?.restaurantId || checkResult.rows[0].restaurant_id !== req.user.restaurantId) {
+      throw new AppError('Forbidden: Cannot delete items from other restaurants', 403);
+    }
+  }
+
+  const result = await query('DELETE FROM menu_items WHERE id = $1 RETURNING id', [id]);
 
   return ResponseHandler.success(res, null, 'Menu item deleted successfully');
 });
@@ -406,6 +420,17 @@ export const deleteMenuItem = asyncHandler(async (req: AuthRequest, res: Respons
 export const toggleAvailability = asyncHandler(async (req: AuthRequest, res: Response) => {
   const { id } = req.params;
 
+  const checkResult = await query('SELECT id, restaurant_id FROM menu_items WHERE id = $1', [id]);
+  if (checkResult.rows.length === 0) {
+    throw new AppError('Menu item not found', 404);
+  }
+
+  if (req.user?.role !== 'super_admin') {
+    if (!req.user?.restaurantId || checkResult.rows[0].restaurant_id !== req.user.restaurantId) {
+      throw new AppError('Forbidden: Cannot toggle items from other restaurants', 403);
+    }
+  }
+
   const result = await query(
     `UPDATE menu_items
     SET is_available = NOT is_available, updated_at = CURRENT_TIMESTAMP
@@ -413,10 +438,6 @@ export const toggleAvailability = asyncHandler(async (req: AuthRequest, res: Res
     RETURNING id, name, is_available`,
     [id]
   );
-
-  if (result.rows.length === 0) {
-    throw new AppError('Menu item not found', 404);
-  }
 
   return ResponseHandler.success(
     res,

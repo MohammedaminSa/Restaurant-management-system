@@ -4,126 +4,71 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+async function seedRestaurant(name: string, slug: string, desc: string) {
+  const result = await query(
+    `INSERT INTO restaurants (name, slug, description, timezone, currency, tax_rate, service_charge_rate) 
+     VALUES ($1, $2, $3, $4, $5, $6, $7) 
+     ON CONFLICT (slug) DO NOTHING
+     RETURNING id`,
+    [name, slug, desc, 'Africa/Addis_Ababa', 'USD', 10.0, 5.0]
+  );
+
+  if (result.rows.length > 0) {
+    console.log(`✓ Created restaurant: ${name}`);
+    return result.rows[0].id;
+  }
+  const existing = await query('SELECT id FROM restaurants WHERE slug = $1', [slug]);
+  console.log(`✓ Restaurant already exists: ${name}`);
+  return existing.rows[0].id;
+}
+
+async function seedUser(email: string, password: string, role: string, name: string, restaurantId?: string) {
+  const hash = await bcrypt.hash(password, 10);
+  if (restaurantId) {
+    await query(
+      `INSERT INTO users (email, password_hash, role, restaurant_id, name) 
+       VALUES ($1, $2, $3, $4, $5) ON CONFLICT (email) DO NOTHING`,
+      [email, hash, role, restaurantId, name]
+    );
+  } else {
+    await query(
+      `INSERT INTO users (email, password_hash, role, name) 
+       VALUES ($1, $2, $3, $4) ON CONFLICT (email) DO NOTHING`,
+      [email, hash, role, name]
+    );
+  }
+  console.log(`✓ Created ${role}: ${email}`);
+}
+
 export async function runSeed() {
   try {
     console.log('🌱 Starting database seed...');
 
-    // Create a restaurant
-    const restaurantResult = await query(
-      `INSERT INTO restaurants (name, slug, description, timezone, currency, tax_rate, service_charge_rate) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7) 
-       ON CONFLICT (slug) DO NOTHING
-       RETURNING id`,
-      [
-        'Demo Restaurant',
-        'demo-restaurant',
-        'A demo restaurant for testing',
-        'Africa/Addis_Ababa',
-        'USD',
-        10.0,
-        5.0
-      ]
-    );
-
-    let restaurantId: string;
-
-    if (restaurantResult.rows.length > 0) {
-      restaurantId = restaurantResult.rows[0].id;
-      console.log('✓ Created restaurant:', restaurantId);
-    } else {
-      // Restaurant already exists, get its ID
-      const existing = await query('SELECT id FROM restaurants WHERE slug = $1', ['demo-restaurant']);
-      restaurantId = existing.rows[0].id;
-      console.log('✓ Restaurant already exists:', restaurantId);
-    }
+    const restaurant1Id = await seedRestaurant('Ocean View Restaurant', 'ocean-view', 'Seaside dining with fresh seafood');
+    const restaurant2Id = await seedRestaurant('Mountain Lodge Bistro', 'mountain-lodge', 'Cozy mountain retreat with hearty meals');
 
     // Create super admin
-    const superAdminPassword = await bcrypt.hash('admin123', 10);
-    const superAdminResult = await query(
-      `INSERT INTO users (email, password_hash, role, name) 
-       VALUES ($1, $2, $3, $4) 
-       ON CONFLICT (email) DO NOTHING
-       RETURNING id`,
-      ['admin@restaurant.com', superAdminPassword, 'super_admin', 'Super Admin']
-    );
+    await seedUser('admin@restaurant.com', 'admin123', 'super_admin', 'Super Admin');
 
-    if (superAdminResult.rows.length > 0) {
-      console.log('✓ Created super admin: admin@restaurant.com');
-    } else {
-      console.log('✓ Super admin already exists');
-    }
+    // Restaurant 1 staff
+    await seedUser('restaurant@demo.com', 'admin123', 'restaurant_admin', 'Restaurant Admin', restaurant1Id);
+    await seedUser('kitchen@demo.com', 'kitchen123', 'kitchen_staff', 'Kitchen Staff', restaurant1Id);
+    await seedUser('waiter@demo.com', 'waiter123', 'waiter', 'Waiter', restaurant1Id);
+    await seedUser('cashier@demo.com', 'cashier123', 'cashier', 'Cashier', restaurant1Id);
 
-    // Create restaurant admin
-    const restaurantAdminPassword = await bcrypt.hash('admin123', 10);
-    const restaurantAdminResult = await query(
-      `INSERT INTO users (email, password_hash, role, restaurant_id, name) 
-       VALUES ($1, $2, $3, $4, $5) 
-       ON CONFLICT (email) DO NOTHING
-       RETURNING id`,
-      ['restaurant@demo.com', restaurantAdminPassword, 'restaurant_admin', restaurantId, 'Restaurant Admin']
-    );
-
-    if (restaurantAdminResult.rows.length > 0) {
-      console.log('✓ Created restaurant admin: restaurant@demo.com');
-    } else {
-      console.log('✓ Restaurant admin already exists');
-    }
-
-    // Create kitchen staff
-    const kitchenPassword = await bcrypt.hash('kitchen123', 10);
-    const kitchenResult = await query(
-      `INSERT INTO users (email, password_hash, role, restaurant_id, name) 
-       VALUES ($1, $2, $3, $4, $5) 
-       ON CONFLICT (email) DO NOTHING
-       RETURNING id`,
-      ['kitchen@demo.com', kitchenPassword, 'kitchen_staff', restaurantId, 'Kitchen Staff']
-    );
-
-    if (kitchenResult.rows.length > 0) {
-      console.log('✓ Created kitchen staff: kitchen@demo.com');
-    } else {
-      console.log('✓ Kitchen staff already exists');
-    }
-
-    // Create waiter
-    const waiterPassword = await bcrypt.hash('waiter123', 10);
-    const waiterResult = await query(
-      `INSERT INTO users (email, password_hash, role, restaurant_id, name) 
-       VALUES ($1, $2, $3, $4, $5) 
-       ON CONFLICT (email) DO NOTHING
-       RETURNING id`,
-      ['waiter@demo.com', waiterPassword, 'waiter', restaurantId, 'Waiter']
-    );
-
-    if (waiterResult.rows.length > 0) {
-      console.log('✓ Created waiter: waiter@demo.com');
-    } else {
-      console.log('✓ Waiter already exists');
-    }
-
-    // Create cashier
-    const cashierPassword = await bcrypt.hash('cashier123', 10);
-    const cashierResult = await query(
-      `INSERT INTO users (email, password_hash, role, restaurant_id, name) 
-       VALUES ($1, $2, $3, $4, $5) 
-       ON CONFLICT (email) DO NOTHING
-       RETURNING id`,
-      ['cashier@demo.com', cashierPassword, 'cashier', restaurantId, 'Cashier']
-    );
-
-    if (cashierResult.rows.length > 0) {
-      console.log('✓ Created cashier: cashier@demo.com');
-    } else {
-      console.log('✓ Cashier already exists');
-    }
+    // Restaurant 2 staff
+    await seedUser('admin2@demo.com', 'admin123', 'restaurant_admin', 'Restaurant Admin 2', restaurant2Id);
+    await seedUser('kitchen2@demo.com', 'kitchen123', 'kitchen_staff', 'Kitchen Staff 2', restaurant2Id);
+    await seedUser('waiter2@demo.com', 'waiter123', 'waiter', 'Waiter 2', restaurant2Id);
+    await seedUser('cashier2@demo.com', 'cashier123', 'cashier', 'Cashier 2', restaurant2Id);
 
     console.log('\n✅ Seed completed successfully!\n');
     console.log('Seeded accounts:');
     console.log('Super Admin: admin@restaurant.com');
-    console.log('Restaurant Admin: restaurant@demo.com');
-    console.log('Kitchen Staff: kitchen@demo.com');
-    console.log('Waiter: waiter@demo.com');
-    console.log('Cashier: cashier@demo.com');
+    console.log('─ Restaurant 1 (Ocean View):');
+    console.log('  Admin: restaurant@demo.com / Kitchen: kitchen@demo.com / Waiter: waiter@demo.com / Cashier: cashier@demo.com');
+    console.log('─ Restaurant 2 (Mountain Lodge):');
+    console.log('  Admin: admin2@demo.com / Kitchen: kitchen2@demo.com / Waiter: waiter2@demo.com / Cashier: cashier2@demo.com');
     console.log('(Default passwords are set — change in production)');
 
   } catch (error) {

@@ -10,10 +10,23 @@ export const getRestaurantPublic = asyncHandler(async (req: Request, res: Respon
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   res.set('Pragma', 'no-cache');
   res.set('Expires', '0');
-  const result = await query(
-    `SELECT id, name, slug, description, logo_url, currency, tax_rate, service_charge_rate, settings
-     FROM restaurants WHERE is_active = true ORDER BY created_at ASC LIMIT 1`
-  );
+
+  const { restaurantId } = req.query;
+
+  let queryText = `
+    SELECT id, name, slug, description, logo_url, currency, tax_rate, service_charge_rate, settings
+    FROM restaurants WHERE is_active = true
+  `;
+  const params: any[] = [];
+
+  if (restaurantId) {
+    queryText += ` AND id = $1`;
+    params.push(restaurantId);
+  }
+
+  queryText += ` ORDER BY created_at ASC LIMIT 1`;
+
+  const result = await query(queryText, params);
   if (result.rows.length === 0) {
     return res.status(200).json({ success: true, data: null });
   }
