@@ -338,6 +338,7 @@ export const updateMenuItem = asyncHandler(async (req: AuthRequest, res: Respons
     image_url,
     base_price,
     preparation_time,
+    category_id,
     is_available,
     is_featured,
     dietary_info,
@@ -367,14 +368,15 @@ export const updateMenuItem = asyncHandler(async (req: AuthRequest, res: Respons
       image_url = COALESCE($3, image_url),
       base_price = COALESCE($4, base_price),
       preparation_time = COALESCE($5, preparation_time),
-      is_available = COALESCE($6, is_available),
-      is_featured = COALESCE($7, is_featured),
-      dietary_info = COALESCE($8, dietary_info),
-      allergens = COALESCE($9, allergens),
-      nutritional_info = COALESCE($10, nutritional_info),
-      display_order = COALESCE($11, display_order),
+      category_id = COALESCE($6, category_id),
+      is_available = COALESCE($7, is_available),
+      is_featured = COALESCE($8, is_featured),
+      dietary_info = COALESCE($9, dietary_info),
+      allergens = COALESCE($10, allergens),
+      nutritional_info = COALESCE($11, nutritional_info),
+      display_order = COALESCE($12, display_order),
       updated_at = CURRENT_TIMESTAMP
-    WHERE id = $12
+    WHERE id = $13
     RETURNING *`,
     [
       name,
@@ -382,6 +384,7 @@ export const updateMenuItem = asyncHandler(async (req: AuthRequest, res: Respons
       image_url,
       base_price,
       preparation_time,
+      category_id,
       is_available,
       is_featured,
       dietary_info ? JSON.stringify(dietary_info) : null,

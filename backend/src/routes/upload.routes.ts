@@ -50,13 +50,20 @@ router.post(
     }
 
     try {
-      const result = await cloudinary.uploader.upload(
-        `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`,
-        {
-          folder: 'menu-items',
-          transformation: [{ width: 1200, height: 900, crop: 'limit', quality: 'auto' }],
-        }
-      );
+      const result = await new Promise<any>((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          {
+            folder: 'menu-items',
+            transformation: [{ width: 1200, height: 900, crop: 'limit', quality: 'auto' }],
+            timeout: 120000,
+          },
+          (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+          }
+        );
+        uploadStream.end(req.file!.buffer);
+      });
 
       return ResponseHandler.success(
         res,
