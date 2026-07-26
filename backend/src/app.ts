@@ -137,15 +137,11 @@ import promotionRoutes from './routes/promotion.routes';
 import restaurantRoutes from './routes/restaurant.routes';
 import uploadRoutes from './routes/upload.routes';
 
-// Serve uploaded files (create uploads dirs if needed)
+// Serve uploaded files (create uploads dir if needed)
 import fs from 'fs';
 const uploadsDir = path.join(__dirname, '../uploads');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
-}
-const menuItemsDir = path.join(uploadsDir, 'menu-items');
-if (!fs.existsSync(menuItemsDir)) {
-  fs.mkdirSync(menuItemsDir, { recursive: true });
 }
 app.use('/uploads', express.static(uploadsDir));
 
