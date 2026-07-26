@@ -1,29 +1,37 @@
 import { Router, Request, Response } from 'express';
 import multer from 'multer';
-import { v2 as cloudinary } from 'cloudinary';
-import { CloudinaryStorage } from 'multer-storage-cloudinary';
+import path from 'path';
+import fs from 'fs';
 import { authenticate, authorize } from '@middlewares/auth';
 import { UserRole } from '@/interfaces/index';
 import { ResponseHandler } from '@utils/responseHandler';
 
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+const uploadsDir = path.join(__dirname, '../../uploads/menu-items');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
 
-const storage = new CloudinaryStorage({
-  cloudinary,
-  params: {
-    folder: 'menu-items',
-    allowed_formats: ['jpg', 'jpeg', 'png', 'webp', 'gif'],
-    transformation: [{ width: 1200, height: 900, crop: 'limit', quality: 'auto' }],
-  } as any,
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, uploadsDir),
+  filename: (_req, file, cb) => {
+    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+    const ext = path.extname(file.originalname) || '.jpg';
+    cb(null, `${uniqueSuffix}${ext}`);
+  },
 });
 
 const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const allowed = ['.jpg', '.jpeg', '.png', '.webp', '.gif'];
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (allowed.includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only jpg, jpeg, png, webp, and gif files are allowed'));
+    }
+  },
 });
 
 const router = Router();
@@ -37,10 +45,12 @@ router.post(
     if (!req.file) {
       return ResponseHandler.error(res, 'No file uploaded', 400);
     }
-    const file = req.file as any;
+    const protocol = req.protocol;
+    const host = req.get('host');
+    const url = `${protocol}://${host}/uploads/menu-items/${req.file.filename}`;
     return ResponseHandler.success(
       res,
-      { url: file.path, filename: file.filename },
+      { url, filename: req.file.filename },
       'Image uploaded successfully'
     );
   }
